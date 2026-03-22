@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { createSupaClient } from "./supabase.js";
+import { db } from "./supabase.js";
 import {
   CLASSES, AVATAR_COLORS, SIZES, BASIC_FACILITIES, ORDER_TYPES,
   SET_LABELS, SET_COLORS, SPECIAL_FACILITIES,
@@ -93,53 +93,6 @@ function FacilityCard({ fac, onAdd, added, disabled }) {
           {fac.benefits.map((b, i) => <li key={i} style={{ marginBottom: 3 }}>{b}</li>)}
         </ul>
       )}
-    </div>
-  );
-}
-
-// ─── SETUP SCREEN ───────────────────────────────────────────────
-
-function SetupScreen({ onComplete }) {
-  const [url, setUrl] = useState("");
-  const [key, setKey] = useState("");
-  const [testing, setTesting] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleTest() {
-    setTesting(true); setError("");
-    try {
-      const db = createSupaClient(url, key);
-      await db.select("parties", "limit=1");
-      onComplete(url, key);
-    } catch (e) {
-      setError("Connection failed. Check your URL/key and ensure you've run the SQL schema. Error: " + e.message);
-    }
-    setTesting(false);
-  }
-
-  return (
-    <div style={{ maxWidth: 480, margin: "80px auto", padding: "0 20px" }} className="fade-in">
-      <div style={{ textAlign: "center", marginBottom: 40 }}>
-        <h1 style={{ fontSize: 32, marginBottom: 8, letterSpacing: 2 }}>⚔ Bastion Manager</h1>
-        <p style={{ color: "var(--text-dim)", fontSize: 16 }}>Connect to your Supabase project to begin</p>
-      </div>
-      <div className="card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div>
-          <label style={{ fontSize: 12, color: "var(--text-dim)", display: "block", marginBottom: 4, fontFamily: "Cinzel, serif", textTransform: "uppercase", letterSpacing: 1 }}>Supabase Project URL</label>
-          <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://xxxxx.supabase.co" style={{ width: "100%" }} />
-        </div>
-        <div>
-          <label style={{ fontSize: 12, color: "var(--text-dim)", display: "block", marginBottom: 4, fontFamily: "Cinzel, serif", textTransform: "uppercase", letterSpacing: 1 }}>Anon / Public Key</label>
-          <input value={key} onChange={e => setKey(e.target.value)} placeholder="eyJhbGc..." style={{ width: "100%" }} type="password" />
-        </div>
-        {error && <p style={{ color: "var(--crimson-bright)", fontSize: 13 }}>{error}</p>}
-        <button className="primary" onClick={handleTest} disabled={!url || !key || testing} style={{ width: "100%", padding: 12 }}>
-          {testing ? "Testing connection..." : "Connect"}
-        </button>
-        <p style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.5 }}>
-          Find these in your Supabase dashboard under Settings → API. Make sure you've run the SQL schema first.
-        </p>
-      </div>
     </div>
   );
 }
@@ -724,7 +677,6 @@ function Dashboard({ db, party, player: initialPlayer }) {
 // ─── MAIN APP ───────────────────────────────────────────────────
 
 export default function App() {
-  const [db, setDb] = useState(null);
   const [clientId, setClientId] = useState(null);
   const [party, setParty] = useState(null);
   const [player, setPlayer] = useState(null);
@@ -737,23 +689,8 @@ export default function App() {
       localStorage.setItem("bastion_client_id", cid);
     }
     setClientId(cid);
-
-    const raw = localStorage.getItem("bastion_supabase");
-    if (raw) {
-      try {
-        const { url, key } = JSON.parse(raw);
-        const client = createSupaClient(url, key);
-        client.select("parties", "limit=1").then(() => setDb(client)).catch(() => {});
-      } catch {}
-    }
     setLoading(false);
   }, []);
-
-  function handleSetup(url, key) {
-    const client = createSupaClient(url, key);
-    localStorage.setItem("bastion_supabase", JSON.stringify({ url, key }));
-    setDb(client);
-  }
 
   function handleJoin(partyData, playerData) {
     setParty(partyData);
@@ -764,8 +701,7 @@ export default function App() {
 
   return (
     <>
-      {!db ? <SetupScreen onComplete={handleSetup} /> :
-       !party ? <PartyScreen db={db} clientId={clientId} onJoin={handleJoin} /> :
+      {!party ? <PartyScreen db={db} clientId={clientId} onJoin={handleJoin} /> :
        <Dashboard db={db} party={party} player={player} />}
     </>
   );

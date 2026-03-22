@@ -1,4 +1,7 @@
-export function createSupaClient(url, key) {
+const SUPABASE_URL = "https://nlmildwmftfnlydwxlbt.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sbWlsZHdtZnRmbmx5ZHd4bGJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MDk0MjMsImV4cCI6MjA3NjE4NTQyM30.XrMITuH-qOqmc3RNwpkK79wHMghbGNwEEt5rHCP0kps";
+
+function createSupaClient(url, key) {
   const base = url.replace(/\/+$/, "");
   const headers = {
     apikey: key,
@@ -53,3 +56,5 @@ export function createSupaClient(url, key) {
     },
   };
 }
+
+export const db = createSupaClient(SUPABASE_URL, SUPABASE_ANON_KEY);
