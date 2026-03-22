@@ -594,6 +594,7 @@ function Dashboard({ db, party, player: initialPlayer }) {
         { key: "bastion", label: "My Bastion" },
         { key: "facilities", label: "Add Facilities" },
         { key: "party", label: `Party (${partyMembers.length})` },
+        ...(player.is_dm ? [{ key: "dm", label: "⚙ DM Panel" }] : []),
       ]} active={tab} onChange={setTab} />
 
       {tab === "bastion" && (
@@ -669,7 +670,282 @@ function Dashboard({ db, party, player: initialPlayer }) {
         </div>
       )}
 
+      {tab === "dm" && player.is_dm && (
+        <DMPanel
+          db={db}
+          party={party}
+          partyMembers={partyMembers}
+          partyBastions={partyBastions}
+          currentPlayerId={player.id}
+          showToast={showToast}
+          onReload={loadData}
+        />
+      )}
+
       {toast && <Toast message={toast} onClose={() => setToast("")} />}
+    </div>
+  );
+}
+
+// ─── DM PANEL ───────────────────────────────────────────────────
+
+function DMPanel({ db, party, partyMembers, partyBastions, currentPlayerId, showToast, onReload }) {
+  const [confirmRemove, setConfirmRemove] = useState(null);
+  const [confirmDeleteParty, setConfirmDeleteParty] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
+  const [editLevel, setEditLevel] = useState(5);
+  const [expandedBastion, setExpandedBastion] = useState(null);
+  const [bastionDefenders, setBastionDefenders] = useState({});
+  const [bastionHirelings, setBastionHirelings] = useState({});
+
+  // Load defenders and hirelings for expanded bastions
+  useEffect(() => {
+    (async () => {
+      const defs = {};
+      const hirs = {};
+      for (const m of partyMembers) {
+        const pb = partyBastions[m.id];
+        if (pb) {
+          try {
+            defs[pb.bastion.id] = await db.select("defenders", `bastion_id=eq.${pb.bastion.id}&is_alive=eq.true&order=created_at.asc`);
+            const facIds = pb.facilities.map(f => f.id);
+            if (facIds.length > 0) {
+              hirs[pb.bastion.id] = await db.select("hirelings", `facility_id=in.(${facIds.join(",")})&order=created_at.asc`);
+            }
+          } catch {}
+        }
+      }
+      setBastionDefenders(defs);
+      setBastionHirelings(hirs);
+    })();
+  }, [partyMembers, partyBastions]);
+
+  async function removePlayer(playerId) {
+    try {
+      // Deleting the player cascades to their bastion, facilities, etc.
+      await db.delete("players", { id: playerId });
+      showToast("Player removed");
+      setConfirmRemove(null);
+      onReload();
+    } catch (e) { showToast("Error: " + e.message); }
+  }
+
+  async function updatePlayerLevel(playerId, newLevel) {
+    try {
+      await db.update("players", { id: playerId }, { character_level: newLevel });
+      showToast(`Level updated to ${newLevel}`);
+      setEditingMember(null);
+      onReload();
+    } catch (e) { showToast("Error: " + e.message); }
+  }
+
+  async function removeFacilityDM(facilityId) {
+    try {
+      await db.delete("facilities", { id: facilityId });
+      showToast("Facility removed");
+      onReload();
+    } catch (e) { showToast("Error: " + e.message); }
+  }
+
+  async function removeDefenderDM(defenderId) {
+    try {
+      await db.delete("defenders", { id: defenderId });
+      showToast("Defender removed");
+      onReload();
+    } catch (e) { showToast("Error: " + e.message); }
+  }
+
+  async function deleteParty() {
+    try {
+      await db.delete("parties", { id: party.id });
+      showToast("Party deleted. Refresh to start over.");
+      setConfirmDeleteParty(false);
+      // Clear local state so they go back to the join screen
+      localStorage.removeItem("bastion_client_id");
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (e) { showToast("Error: " + e.message); }
+  }
+
+  return (
+    <div className="fade-in">
+      {/* Party Overview */}
+      <div className="card" style={{ marginBottom: 20, borderColor: "var(--crimson)", background: "linear-gradient(135deg, var(--bg-card) 0%, #2A1E1E 100%)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <h3 style={{ fontSize: 16, margin: 0, color: "var(--crimson-bright)" }}>⚙ Dungeon Master Panel</h3>
+            <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>
+              Party: <strong style={{ color: "var(--gold)" }}>{party.name}</strong> · Code: <span style={{ fontFamily: "monospace", color: "var(--gold)", letterSpacing: 2 }}>{party.join_code}</span> · {partyMembers.length} member{partyMembers.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <div>
+            {confirmDeleteParty ? (
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: "var(--crimson-bright)" }}>Delete entire party?</span>
+                <button className="danger" onClick={deleteParty} style={{ fontSize: 10, padding: "4px 10px" }}>Yes, Delete</button>
+                <button onClick={() => setConfirmDeleteParty(false)} style={{ fontSize: 10, padding: "4px 10px" }}>Cancel</button>
+              </div>
+            ) : (
+              <button className="danger" onClick={() => setConfirmDeleteParty(true)} style={{ fontSize: 10, padding: "4px 10px" }}>Delete Party</button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* All Members */}
+      <div style={{ display: "grid", gap: 16 }}>
+        {partyMembers.map(m => {
+          const pb = partyBastions[m.id];
+          const isExpanded = expandedBastion === m.id;
+          const isSelf = m.id === currentPlayerId;
+          const defs = pb ? (bastionDefenders[pb.bastion.id] || []) : [];
+          const hirs = pb ? (bastionHirelings[pb.bastion.id] || []) : [];
+
+          return (
+            <div key={m.id} className="card" style={{ borderColor: isSelf ? "var(--border-gold)" : "var(--border)" }}>
+              {/* Member Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: "50%", background: m.avatar_color,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: "Cinzel", fontSize: 18, color: "var(--bg-deep)", fontWeight: 700,
+                  }}>{m.character_name[0]}</div>
+                  <div>
+                    <h4 style={{ fontSize: 16, margin: 0 }}>
+                      {m.character_name}
+                      {isSelf && <span style={{ fontSize: 10, color: "var(--text-dim)", marginLeft: 6 }}>(you)</span>}
+                      {m.is_dm && <span className="badge" style={{ marginLeft: 6, background: "var(--crimson)22", color: "var(--crimson-bright)", border: "1px solid var(--crimson)", fontSize: 9 }}>DM</span>}
+                    </h4>
+                    <p style={{ fontSize: 13, color: "var(--text-dim)" }}>
+                      {m.character_class} ·{" "}
+                      {editingMember === m.id ? (
+                        <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                          Level <input type="number" min={1} max={20} value={editLevel}
+                            onChange={e => setEditLevel(parseInt(e.target.value) || 1)}
+                            style={{ width: 50, padding: "1px 4px", fontSize: 12 }} />
+                          <button onClick={() => updatePlayerLevel(m.id, editLevel)} style={{ fontSize: 9, padding: "2px 6px" }}>Save</button>
+                          <button onClick={() => setEditingMember(null)} style={{ fontSize: 9, padding: "2px 6px", background: "none", border: "none", color: "var(--text-dim)" }}>✕</button>
+                        </span>
+                      ) : (
+                        <span onClick={() => { setEditingMember(m.id); setEditLevel(m.character_level); }} style={{ cursor: "pointer" }}>
+                          Level {m.character_level} ✎
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {pb && (
+                    <button onClick={() => setExpandedBastion(isExpanded ? null : m.id)}
+                      style={{ fontSize: 10, padding: "4px 10px" }}>
+                      {isExpanded ? "▾ Collapse" : "▸ Expand"}
+                    </button>
+                  )}
+                  {!isSelf && (
+                    confirmRemove === m.id ? (
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button className="danger" onClick={() => removePlayer(m.id)} style={{ fontSize: 9, padding: "3px 8px" }}>Confirm</button>
+                        <button onClick={() => setConfirmRemove(null)} style={{ fontSize: 9, padding: "3px 8px" }}>Cancel</button>
+                      </div>
+                    ) : (
+                      <button className="danger" onClick={() => setConfirmRemove(m.id)} style={{ fontSize: 10, padding: "4px 10px" }}>Remove</button>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* Bastion Summary */}
+              {pb && (
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+                  <p style={{ fontSize: 14 }}>
+                    <strong style={{ color: "var(--gold)" }}>{pb.bastion.name}</strong>
+                    {pb.bastion.description ? <span style={{ color: "var(--text-dim)" }}> — {pb.bastion.description}</span> : ""}
+                  </p>
+                  <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>
+                    <span>Special: {pb.facilities.filter(f => f.facility_type === "special").length}/{getMaxSpecialFacilities(m.character_level)}</span>
+                    <span>Basic: {pb.facilities.filter(f => f.facility_type === "basic").length}</span>
+                    <span>Defenders: {defs.length}</span>
+                    <span>Walls: {pb.bastion.defensive_wall_squares || 0}{pb.bastion.walls_fully_enclosed ? " (enclosed)" : ""}</span>
+                  </div>
+
+                  {/* Facility badges (always shown) */}
+                  <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 8 }}>
+                    {pb.facilities.filter(f => f.facility_type === "special").map(f => {
+                      const facDef = SPECIAL_FACILITIES.find(sf => sf.key === f.facility_key);
+                      return <span key={f.id} className="badge" style={{ background: "var(--bg-deep)", color: "var(--gold)", border: "1px solid var(--border-gold)", fontSize: 10 }}>{facDef?.name || f.facility_key}</span>;
+                    })}
+                  </div>
+
+                  {/* Expanded Detail */}
+                  {isExpanded && (
+                    <div style={{ marginTop: 14 }} className="fade-in">
+                      {/* Special Facilities Detail */}
+                      <h4 style={{ fontSize: 13, marginBottom: 8, color: "var(--gold-dim)" }}>Special Facilities</h4>
+                      {pb.facilities.filter(f => f.facility_type === "special").map(f => {
+                        const facDef = SPECIAL_FACILITIES.find(sf => sf.key === f.facility_key);
+                        const facHirs = hirs.filter(h => h.facility_id === f.id);
+                        return (
+                          <div key={f.id} style={{ padding: "8px 12px", marginBottom: 6, background: "var(--bg-deep)", borderRadius: 4, border: "1px solid var(--border)" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div>
+                                <span style={{ fontSize: 13, color: "var(--gold)", fontFamily: "Cinzel" }}>{facDef?.name || f.facility_key}</span>
+                                <span style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: 8 }}>
+                                  {SIZES[f.size].label} · {facDef?.order}
+                                </span>
+                                {f.garden_type && <span style={{ fontSize: 11, color: "var(--green)", marginLeft: 8 }}>{f.garden_type}</span>}
+                                {f.pub_beverage && <span style={{ fontSize: 11, color: "var(--blue)", marginLeft: 8 }}>{f.pub_beverage}</span>}
+                                {f.training_type && <span style={{ fontSize: 11, color: "var(--blue)", marginLeft: 8 }}>{f.training_type}</span>}
+                              </div>
+                              <button className="danger" onClick={() => removeFacilityDM(f.id)} style={{ fontSize: 9, padding: "2px 6px" }}>✕</button>
+                            </div>
+                            {facHirs.length > 0 && (
+                              <div style={{ marginTop: 4, fontSize: 11, color: "var(--text-dim)" }}>
+                                Hirelings: {facHirs.map(h => h.name + (h.role ? ` (${h.role})` : "")).join(", ")}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Basic Facilities */}
+                      {pb.facilities.filter(f => f.facility_type === "basic").length > 0 && (
+                        <>
+                          <h4 style={{ fontSize: 13, marginBottom: 8, marginTop: 12, color: "var(--gold-dim)" }}>Basic Facilities</h4>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            {pb.facilities.filter(f => f.facility_type === "basic").map(f => (
+                              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", background: "var(--bg-deep)", borderRadius: 3, border: "1px solid var(--border)", fontSize: 12 }}>
+                                <span style={{ textTransform: "capitalize" }}>{f.facility_key.replace(/_/g, " ")}</span>
+                                <span style={{ color: "var(--text-dim)", fontSize: 10 }}>({SIZES[f.size].label})</span>
+                                <button className="danger" onClick={() => removeFacilityDM(f.id)} style={{ fontSize: 8, padding: "1px 4px", marginLeft: 2 }}>✕</button>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* Defenders */}
+                      {defs.length > 0 && (
+                        <>
+                          <h4 style={{ fontSize: 13, marginBottom: 8, marginTop: 12, color: "var(--gold-dim)" }}>Defenders ({defs.length})</h4>
+                          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                            {defs.map(d => (
+                              <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", background: "var(--bg-deep)", borderRadius: 3, border: "1px solid var(--border)", fontSize: 11 }}>
+                                <span>{d.name}{d.creature_type ? ` (${d.creature_type})` : ""}</span>
+                                <button className="danger" onClick={() => removeDefenderDM(d.id)} style={{ fontSize: 8, padding: "1px 3px" }}>✕</button>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              {!pb && <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 8, fontStyle: "italic" }}>No bastion established</p>}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
