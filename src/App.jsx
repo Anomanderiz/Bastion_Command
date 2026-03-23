@@ -68,38 +68,75 @@ function FacilityCard({ fac, onAdd, added, disabled }) {
 function LoginScreen({ onLogin }) {
   const [role, setRole] = useState(null);
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  // DM state
+  const [allParties, setAllParties] = useState([]);
+  const [loadingParties, setLoadingParties] = useState(false);
+  const [creatingParty, setCreatingParty] = useState(false);
+  const [partyName, setPartyName] = useState("");
+  // Player state
+  const [existingChars, setExistingChars] = useState([]);
+  const [loadingChars, setLoadingChars] = useState(false);
+  const [creatingChar, setCreatingChar] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [charName, setCharName] = useState("");
   const [charClass, setCharClass] = useState("Fighter");
   const [charLevel, setCharLevel] = useState(5);
   const [color, setColor] = useState(AVATAR_COLORS[0]);
-  const [partyName, setPartyName] = useState("");
-  const [dmMode, setDmMode] = useState(null);
-  const [error, setError] = useState("");
 
-  async function handleDMLogin() {
-    setError("");
-    if (password !== DM_PASSWORD) { setError("Incorrect password."); return; }
-    if (dmMode === "create") {
-      if (!partyName) { setError("Enter a party name."); return; }
-      try {
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const [party] = await db.insert("parties", { name: partyName, join_code: code });
-        localStorage.setItem("bastion_session", JSON.stringify({ role: "dm", partyId: party.id }));
-        onLogin("dm", party, null);
-      } catch (e) { setError("Failed: " + e.message); }
-    } else if (dmMode === "join") {
-      if (!joinCode) { setError("Enter a join code."); return; }
-      try {
-        const parties = await db.select("parties", "join_code=eq." + joinCode.toUpperCase());
-        if (!parties.length) { setError("No party found with that code."); return; }
-        localStorage.setItem("bastion_session", JSON.stringify({ role: "dm", partyId: parties[0].id }));
-        onLogin("dm", parties[0], null);
-      } catch (e) { setError("Failed: " + e.message); }
-    }
+  // DM: load all parties when password is correct
+  async function loadParties() {
+    setLoadingParties(true);
+    try {
+      const parties = await db.select("parties", "order=created_at.desc");
+      setAllParties(parties);
+    } catch { setAllParties([]); }
+    setLoadingParties(false);
   }
 
-  async function handlePlayerLogin() {
+  function handlePasswordSubmit() {
+    setError("");
+    if (password !== DM_PASSWORD) { setError("Incorrect password."); return; }
+    loadParties();
+  }
+
+  async function handleCreateParty() {
+    setError("");
+    if (!partyName) { setError("Enter a party name."); return; }
+    try {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const [party] = await db.insert("parties", { name: partyName, join_code: code });
+      localStorage.setItem("bastion_session", JSON.stringify({ role: "dm", partyId: party.id }));
+      onLogin("dm", party, null);
+    } catch (e) { setError("Failed: " + e.message); }
+  }
+
+  function selectParty(party) {
+    localStorage.setItem("bastion_session", JSON.stringify({ role: "dm", partyId: party.id }));
+    onLogin("dm", party, null);
+  }
+
+  // Player: load existing characters for this browser
+  async function loadExistingChars() {
+    setLoadingChars(true);
+    try {
+      const clientId = localStorage.getItem("bastion_client_id");
+      const players = await db.select("players", "client_id=eq." + clientId + "&select=*,parties:party_id(*)&order=created_at.desc");
+      setExistingChars(players);
+    } catch { setExistingChars([]); }
+    setLoadingChars(false);
+  }
+
+  useEffect(() => {
+    if (role === "player") loadExistingChars();
+  }, [role]);
+
+  function selectChar(player) {
+    localStorage.setItem("bastion_session", JSON.stringify({ role: "player", partyId: player.party_id, playerId: player.id }));
+    onLogin("player", player.parties, player);
+  }
+
+  async function handleCreateChar() {
     setError("");
     if (!joinCode || !charName) { setError("Fill in all fields."); return; }
     try {
@@ -107,17 +144,13 @@ function LoginScreen({ onLogin }) {
       if (!parties.length) { setError("No party found with that code."); return; }
       const party = parties[0];
       const clientId = localStorage.getItem("bastion_client_id");
-      const existing = await db.select("players", "party_id=eq." + party.id + "&client_id=eq." + clientId);
-      if (existing.length > 0) {
-        localStorage.setItem("bastion_session", JSON.stringify({ role: "player", partyId: party.id, playerId: existing[0].id }));
-        onLogin("player", party, existing[0]);
-        return;
-      }
       const [player] = await db.insert("players", { party_id: party.id, client_id: clientId, character_name: charName, character_class: charClass, character_level: charLevel, is_dm: false, avatar_color: color });
       localStorage.setItem("bastion_session", JSON.stringify({ role: "player", partyId: party.id, playerId: player.id }));
       onLogin("player", party, player);
     } catch (e) { setError("Failed: " + e.message); }
   }
+
+  const lbl = { fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 };
 
   return (
     <div style={{ maxWidth: 480, margin: "80px auto", padding: "0 20px" }} className="fade-in">
@@ -125,11 +158,13 @@ function LoginScreen({ onLogin }) {
         <h1 style={{ fontSize: 32, marginBottom: 8, letterSpacing: 2 }}>⚔ Bastion Command</h1>
         <p style={{ color: "var(--text-dim)", fontSize: 16 }}>D&D 2024 Bastion Manager</p>
       </div>
+
+      {/* Role select */}
       {!role && (
         <div style={{ display: "flex", gap: 16 }}>
           <div className="card" style={{ flex: 1, textAlign: "center", cursor: "pointer", borderColor: "var(--crimson)" }} onClick={() => setRole("dm")}>
             <h3 style={{ fontSize: 16, marginBottom: 8, color: "var(--crimson-bright)" }}>👑 Dungeon Master</h3>
-            <p style={{ fontSize: 13, color: "var(--text-dim)" }}>Full control over all bastions and party</p>
+            <p style={{ fontSize: 13, color: "var(--text-dim)" }}>Full control over all bastions</p>
           </div>
           <div className="card" style={{ flex: 1, textAlign: "center", cursor: "pointer" }} onClick={() => setRole("player")}>
             <h3 style={{ fontSize: 16, marginBottom: 8 }}>⚔ Player</h3>
@@ -137,59 +172,136 @@ function LoginScreen({ onLogin }) {
           </div>
         </div>
       )}
+
+      {/* ── DM LOGIN ── */}
       {role === "dm" && (
         <div className="card fade-in" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <button onClick={() => { setRole(null); setDmMode(null); setError(""); }} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 13, padding: 0, textAlign: "left", textTransform: "none" }}>← Back</button>
-          <h3 style={{ fontSize: 16, color: "var(--crimson-bright)" }}>👑 DM Login</h3>
-          <div>
-            <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter DM password" style={{ width: "100%", marginTop: 4 }} />
-          </div>
-          {!dmMode && password === DM_PASSWORD && (
-            <div style={{ display: "flex", gap: 12 }} className="fade-in">
-              <div className="card" style={{ flex: 1, textAlign: "center", cursor: "pointer", padding: 12 }} onClick={() => setDmMode("create")}><h4 style={{ fontSize: 13, margin: 0 }}>Create Party</h4></div>
-              <div className="card" style={{ flex: 1, textAlign: "center", cursor: "pointer", padding: 12 }} onClick={() => setDmMode("join")}><h4 style={{ fontSize: 13, margin: 0 }}>Join Existing</h4></div>
+          <button onClick={() => { setRole(null); setError(""); setAllParties([]); setCreatingParty(false); setPassword(""); }} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 13, padding: 0, textAlign: "left", textTransform: "none" }}>← Back</button>
+          <h3 style={{ fontSize: 16, color: "var(--crimson-bright)" }}>👑 Dungeon Master</h3>
+
+          {/* Password gate */}
+          {allParties.length === 0 && !loadingParties && (
+            <div>
+              <label style={lbl}>Password</label>
+              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter DM password" style={{ flex: 1 }}
+                  onKeyDown={e => { if (e.key === "Enter") handlePasswordSubmit(); }} />
+                <button className="primary" onClick={handlePasswordSubmit} style={{ padding: "8px 16px" }}>Enter</button>
+              </div>
             </div>
           )}
-          {dmMode === "create" && (
+
+          {loadingParties && <Spinner />}
+
+          {/* Party list */}
+          {allParties.length > 0 && !creatingParty && (
             <div className="fade-in">
-              <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Party Name</label>
+              <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 10 }}>Select a party to manage:</p>
+              <div style={{ display: "grid", gap: 8 }}>
+                {allParties.map(p => (
+                  <div key={p.id} className="card" onClick={() => selectParty(p)}
+                    style={{ cursor: "pointer", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <h4 style={{ fontSize: 14, margin: 0 }}>{p.name}</h4>
+                      <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>Code: <span style={{ fontFamily: "monospace", color: "var(--gold)", letterSpacing: 2 }}>{p.join_code}</span></p>
+                    </div>
+                    <span style={{ fontSize: 12, color: "var(--gold)" }}>→</span>
+                  </div>
+                ))}
+              </div>
+              <div className="divider" />
+              <button onClick={() => setCreatingParty(true)} style={{ width: "100%", padding: 10 }}>+ Create New Party</button>
+            </div>
+          )}
+
+          {/* No parties yet — show create directly */}
+          {allParties.length === 0 && !loadingParties && password === DM_PASSWORD && (
+            <div className="fade-in">
+              <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 8 }}>No parties found. Create your first:</p>
+              <label style={lbl}>Party Name</label>
               <input value={partyName} onChange={e => setPartyName(e.target.value)} placeholder="The Swords of Waterdeep" style={{ width: "100%", marginTop: 4 }} />
+              <button className="primary" onClick={handleCreateParty} style={{ width: "100%", padding: 12, marginTop: 10 }}>Create Party</button>
             </div>
           )}
-          {dmMode === "join" && (
+
+          {/* Creating new party */}
+          {creatingParty && (
             <div className="fade-in">
-              <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Join Code</label>
-              <input value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="ABC123" style={{ width: "100%", marginTop: 4, textTransform: "uppercase" }} maxLength={6} />
+              <button onClick={() => setCreatingParty(false)} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, padding: 0, textTransform: "none" }}>← Back to party list</button>
+              <label style={{ ...lbl, marginTop: 10, display: "block" }}>Party Name</label>
+              <input value={partyName} onChange={e => setPartyName(e.target.value)} placeholder="The Swords of Waterdeep" style={{ width: "100%", marginTop: 4 }} />
+              <button className="primary" onClick={handleCreateParty} style={{ width: "100%", padding: 12, marginTop: 10 }}>Create Party</button>
             </div>
           )}
+
           {error && <p style={{ color: "var(--crimson-bright)", fontSize: 13 }}>{error}</p>}
-          {dmMode && <button className="primary" onClick={handleDMLogin} style={{ width: "100%", padding: 12 }}>Enter as DM</button>}
         </div>
       )}
+
+      {/* ── PLAYER LOGIN ── */}
       {role === "player" && (
         <div className="card fade-in" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <button onClick={() => { setRole(null); setError(""); }} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 13, padding: 0, textAlign: "left", textTransform: "none" }}>← Back</button>
+          <button onClick={() => { setRole(null); setError(""); setCreatingChar(false); }} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 13, padding: 0, textAlign: "left", textTransform: "none" }}>← Back</button>
           <h3 style={{ fontSize: 16 }}>⚔ Player Login</h3>
-          <div>
-            <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Join Code</label>
-            <input value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="ABC123" style={{ width: "100%", marginTop: 4, textTransform: "uppercase" }} maxLength={6} />
-          </div>
-          <div className="divider" />
-          <h4 style={{ fontSize: 14 }}>Your Character</h4>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div><label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Name</label><input value={charName} onChange={e => setCharName(e.target.value)} placeholder="Kira" style={{ width: "100%", marginTop: 4 }} /></div>
-            <div><label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Class</label><select value={charClass} onChange={e => setCharClass(e.target.value)} style={{ width: "100%", marginTop: 4 }}>{CLASSES.map(c => <option key={c}>{c}</option>)}</select></div>
-          </div>
-          <div><label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Level</label><input type="number" min={1} max={20} value={charLevel} onChange={e => setCharLevel(parseInt(e.target.value) || 1)} style={{ width: "100%", marginTop: 4 }} /></div>
-          <div>
-            <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Color</label>
-            <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-              {AVATAR_COLORS.map(c => <div key={c} onClick={() => setColor(c)} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: color === c ? "2px solid var(--text-bright)" : "2px solid transparent" }} />)}
+
+          {loadingChars && <Spinner />}
+
+          {/* Existing characters */}
+          {!loadingChars && !creatingChar && (
+            <div className="fade-in">
+              {existingChars.length > 0 && (
+                <>
+                  <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 10 }}>Welcome back. Select your character:</p>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {existingChars.map(p => (
+                      <div key={p.id} className="card" onClick={() => selectChar(p)}
+                        style={{ cursor: "pointer", padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: p.avatar_color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Cinzel", fontSize: 16, color: "var(--bg-deep)", fontWeight: 700 }}>{p.character_name[0]}</div>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ fontSize: 14, margin: 0 }}>{p.character_name}</h4>
+                          <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>{p.character_class} · Level {p.character_level} · {p.parties?.name || "Unknown party"}</p>
+                        </div>
+                        <span style={{ fontSize: 12, color: "var(--gold)" }}>→</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="divider" />
+                </>
+              )}
+              {existingChars.length === 0 && (
+                <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 8 }}>No characters found on this device. Create one to get started:</p>
+              )}
+              <button onClick={() => setCreatingChar(true)} style={{ width: "100%", padding: 10 }}>+ Create New Character</button>
             </div>
-          </div>
+          )}
+
+          {/* Create new character */}
+          {creatingChar && (
+            <div className="fade-in">
+              <button onClick={() => setCreatingChar(false)} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, padding: 0, textTransform: "none", marginBottom: 8 }}>← Back to character list</button>
+              <div style={{ marginBottom: 12 }}>
+                <label style={lbl}>Party Join Code</label>
+                <input value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="Get this from your DM" style={{ width: "100%", marginTop: 4, textTransform: "uppercase" }} maxLength={6} />
+                <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>Ask your DM for the party code. You only need it once.</p>
+              </div>
+              <div className="divider" />
+              <h4 style={{ fontSize: 14, marginBottom: 10 }}>Character Details</h4>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><label style={lbl}>Name</label><input value={charName} onChange={e => setCharName(e.target.value)} placeholder="Kira" style={{ width: "100%", marginTop: 4 }} /></div>
+                <div><label style={lbl}>Class</label><select value={charClass} onChange={e => setCharClass(e.target.value)} style={{ width: "100%", marginTop: 4 }}>{CLASSES.map(c => <option key={c}>{c}</option>)}</select></div>
+              </div>
+              <div style={{ marginTop: 10 }}><label style={lbl}>Level</label><input type="number" min={1} max={20} value={charLevel} onChange={e => setCharLevel(parseInt(e.target.value) || 1)} style={{ width: "100%", marginTop: 4 }} /></div>
+              <div style={{ marginTop: 10 }}>
+                <label style={lbl}>Color</label>
+                <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                  {AVATAR_COLORS.map(c => <div key={c} onClick={() => setColor(c)} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: color === c ? "2px solid var(--text-bright)" : "2px solid transparent" }} />)}
+                </div>
+              </div>
+              <button className="primary" onClick={handleCreateChar} style={{ width: "100%", padding: 12, marginTop: 14 }}>Join Party</button>
+            </div>
+          )}
+
           {error && <p style={{ color: "var(--crimson-bright)", fontSize: 13 }}>{error}</p>}
-          <button className="primary" onClick={handlePlayerLogin} style={{ width: "100%", padding: 12 }}>Join Party</button>
         </div>
       )}
     </div>
