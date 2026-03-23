@@ -76,10 +76,11 @@ function LoginScreen({ onLogin }) {
   const [creatingParty, setCreatingParty] = useState(false);
   const [partyName, setPartyName] = useState("");
   // Player state
-  const [existingChars, setExistingChars] = useState([]);
-  const [loadingChars, setLoadingChars] = useState(false);
+  const [playerJoinCode, setPlayerJoinCode] = useState("");
+  const [playerParty, setPlayerParty] = useState(null);
+  const [partyPlayers, setPartyPlayers] = useState([]);
+  const [loadingPlayers, setLoadingPlayers] = useState(false);
   const [creatingChar, setCreatingChar] = useState(false);
-  const [joinCode, setJoinCode] = useState("");
   const [charName, setCharName] = useState("");
   const [charClass, setCharClass] = useState("Fighter");
   const [charLevel, setCharLevel] = useState(5);
@@ -118,37 +119,36 @@ function LoginScreen({ onLogin }) {
     onLogin("dm", party, null);
   }
 
-  // Player: load existing characters for this browser
-  async function loadExistingChars() {
-    setLoadingChars(true);
+  // Player: enter code → load characters in that party
+  async function handlePlayerCodeSubmit() {
+    setError("");
+    if (!playerJoinCode) { setError("Enter a join code."); return; }
+    setLoadingPlayers(true);
     try {
-      const clientId = localStorage.getItem("bastion_client_id");
-      const players = await db.select("players", "client_id=eq." + clientId + "&select=*,parties:party_id(*)&order=created_at.desc");
-      setExistingChars(players);
-    } catch { setExistingChars([]); }
-    setLoadingChars(false);
+      const parties = await db.select("parties", "join_code=eq." + playerJoinCode.toUpperCase());
+      if (!parties.length) { setError("No party found with that code."); setLoadingPlayers(false); return; }
+      const party = parties[0];
+      setPlayerParty(party);
+      const players = await db.select("players", "party_id=eq." + party.id + "&order=created_at.asc");
+      setPartyPlayers(players);
+    } catch (e) { setError("Failed: " + e.message); }
+    setLoadingPlayers(false);
   }
-
-  useEffect(() => {
-    if (role === "player") loadExistingChars();
-  }, [role]);
 
   function selectChar(player) {
     localStorage.setItem("bastion_session", JSON.stringify({ role: "player", partyId: player.party_id, playerId: player.id }));
-    onLogin("player", player.parties, player);
+    onLogin("player", playerParty, player);
   }
 
   async function handleCreateChar() {
     setError("");
-    if (!joinCode || !charName) { setError("Fill in all fields."); return; }
+    if (!charName) { setError("Enter a character name."); return; }
+    if (!playerParty) { setError("No party selected."); return; }
     try {
-      const parties = await db.select("parties", "join_code=eq." + joinCode.toUpperCase());
-      if (!parties.length) { setError("No party found with that code."); return; }
-      const party = parties[0];
       const clientId = localStorage.getItem("bastion_client_id");
-      const [player] = await db.insert("players", { party_id: party.id, client_id: clientId, character_name: charName, character_class: charClass, character_level: charLevel, is_dm: false, avatar_color: color });
-      localStorage.setItem("bastion_session", JSON.stringify({ role: "player", partyId: party.id, playerId: player.id }));
-      onLogin("player", party, player);
+      const [player] = await db.insert("players", { party_id: playerParty.id, client_id: clientId, character_name: charName, character_class: charClass, character_level: charLevel, is_dm: false, avatar_color: color });
+      localStorage.setItem("bastion_session", JSON.stringify({ role: "player", partyId: playerParty.id, playerId: player.id }));
+      onLogin("player", playerParty, player);
     } catch (e) { setError("Failed: " + e.message); }
   }
 
@@ -243,25 +243,37 @@ function LoginScreen({ onLogin }) {
       {/* ── PLAYER LOGIN ── */}
       {role === "player" && (
         <div className="card fade-in" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <button onClick={() => { setRole(null); setError(""); setCreatingChar(false); }} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 13, padding: 0, textAlign: "left", textTransform: "none" }}>← Back</button>
+          <button onClick={() => { setRole(null); setError(""); setCreatingChar(false); setPlayerParty(null); setPartyPlayers([]); setPlayerJoinCode(""); }} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 13, padding: 0, textAlign: "left", textTransform: "none" }}>← Back</button>
           <h3 style={{ fontSize: 16 }}>⚔ Player Login</h3>
 
-          {loadingChars && <Spinner />}
+          {/* Step 1: Enter party code */}
+          {!playerParty && (
+            <div>
+              <label style={lbl}>Party Join Code</label>
+              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                <input value={playerJoinCode} onChange={e => setPlayerJoinCode(e.target.value)} placeholder="Get this from your DM" style={{ flex: 1, textTransform: "uppercase" }} maxLength={6}
+                  onKeyDown={e => { if (e.key === "Enter") handlePlayerCodeSubmit(); }} />
+                <button className="primary" onClick={handlePlayerCodeSubmit} disabled={!playerJoinCode || loadingPlayers} style={{ padding: "8px 16px" }}>{loadingPlayers ? "..." : "Enter"}</button>
+              </div>
+            </div>
+          )}
 
-          {/* Existing characters */}
-          {!loadingChars && !creatingChar && (
+          {/* Step 2: Pick character or create new */}
+          {playerParty && !creatingChar && (
             <div className="fade-in">
-              {existingChars.length > 0 && (
+              <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 4 }}>Party: <strong style={{ color: "var(--gold)" }}>{playerParty.name}</strong></p>
+
+              {partyPlayers.length > 0 ? (
                 <>
-                  <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 10 }}>Welcome back. Select your character:</p>
+                  <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 10 }}>Select your character:</p>
                   <div style={{ display: "grid", gap: 8 }}>
-                    {existingChars.map(p => (
+                    {partyPlayers.map(p => (
                       <div key={p.id} className="card" onClick={() => selectChar(p)}
                         style={{ cursor: "pointer", padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: 36, height: 36, borderRadius: "50%", background: p.avatar_color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Cinzel", fontSize: 16, color: "var(--bg-deep)", fontWeight: 700 }}>{p.character_name[0]}</div>
                         <div style={{ flex: 1 }}>
                           <h4 style={{ fontSize: 14, margin: 0 }}>{p.character_name}</h4>
-                          <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>{p.character_class} · Level {p.character_level} · {p.parties?.name || "Unknown party"}</p>
+                          <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>{p.character_class} · Level {p.character_level}</p>
                         </div>
                         <span style={{ fontSize: 12, color: "var(--gold)" }}>→</span>
                       </div>
@@ -269,24 +281,19 @@ function LoginScreen({ onLogin }) {
                   </div>
                   <div className="divider" />
                 </>
-              )}
-              {existingChars.length === 0 && (
-                <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 8 }}>No characters found on this device. Create one to get started:</p>
+              ) : (
+                <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 8 }}>No characters in this party yet. Create the first one:</p>
               )}
               <button onClick={() => setCreatingChar(true)} style={{ width: "100%", padding: 10 }}>+ Create New Character</button>
+              <button onClick={() => { setPlayerParty(null); setPartyPlayers([]); setPlayerJoinCode(""); }} style={{ width: "100%", padding: 8, background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, marginTop: 4, textTransform: "none" }}>← Different party code</button>
             </div>
           )}
 
-          {/* Create new character */}
-          {creatingChar && (
+          {/* Step 3: Create character form */}
+          {playerParty && creatingChar && (
             <div className="fade-in">
               <button onClick={() => setCreatingChar(false)} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, padding: 0, textTransform: "none", marginBottom: 8 }}>← Back to character list</button>
-              <div style={{ marginBottom: 12 }}>
-                <label style={lbl}>Party Join Code</label>
-                <input value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="Get this from your DM" style={{ width: "100%", marginTop: 4, textTransform: "uppercase" }} maxLength={6} />
-                <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>Ask your DM for the party code. You only need it once.</p>
-              </div>
-              <div className="divider" />
+              <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 10 }}>Joining: <strong style={{ color: "var(--gold)" }}>{playerParty.name}</strong></p>
               <h4 style={{ fontSize: 14, marginBottom: 10 }}>Character Details</h4>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div><label style={lbl}>Name</label><input value={charName} onChange={e => setCharName(e.target.value)} placeholder="Kira" style={{ width: "100%", marginTop: 4 }} /></div>
@@ -299,7 +306,7 @@ function LoginScreen({ onLogin }) {
                   {AVATAR_COLORS.map(c => <div key={c} onClick={() => setColor(c)} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: color === c ? "2px solid var(--text-bright)" : "2px solid transparent" }} />)}
                 </div>
               </div>
-              <button className="primary" onClick={handleCreateChar} style={{ width: "100%", padding: 12, marginTop: 14 }}>Join Party</button>
+              <button className="primary" onClick={handleCreateChar} style={{ width: "100%", padding: 12, marginTop: 14 }}>Create & Join</button>
             </div>
           )}
 
@@ -582,7 +589,10 @@ function Dashboard({ party, role, selectedPlayer, onLogout }) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  function switchPlayer(pid) { setViewingPlayerId(pid); setLoading(true); }
+  function switchPlayer(pid) {
+    if (pid === viewingPlayerId) { setTab("bastion"); return; }
+    setViewingPlayerId(pid); setLoading(true); setTab("bastion");
+  }
 
   async function createBastion(name, desc) { if (!viewPlayer) return; const [b] = await db.insert("bastions", { player_id: viewPlayer.id, name, description: desc }); setBastion(b); showToast("Bastion created!"); loadData(); sendToDiscord(msgBastionCreated(viewPlayer.character_name, name, desc)); }
   async function addFacility(key, type, size, opts = {}) { if (!bastion) return; await db.insert("facilities", { bastion_id: bastion.id, facility_key: key, facility_type: type, size, ...opts }); const fd = SPECIAL_FACILITIES.find(f => f.key === key); showToast("Facility added!"); loadData(); sendToDiscord(msgFacilityAdded(viewPlayer?.character_name, fd?.name || key, type)); }
