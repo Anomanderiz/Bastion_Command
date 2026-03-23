@@ -2,7 +2,7 @@
 // Set your webhook URL here. Create one in Discord:
 // Channel Settings → Integrations → Webhooks → New Webhook → Copy URL
 
-const DISCORD_WEBHOOK_URL = "";  // ← Paste your webhook URL here
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1405774523130708060/s55Nwt0t2iPlySto7D8fEw5GlhMFh-J4aXM0irAvcVx6GShTpUQSBknd7klCScXqJ9-w";  // ← Paste your webhook URL here
 
 export async function sendToDiscord(message) {
   if (!DISCORD_WEBHOOK_URL) return;
