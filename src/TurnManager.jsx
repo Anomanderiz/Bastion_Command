@@ -198,16 +198,17 @@ export default function TurnManager({ bastion, facilities, defenders, player, sh
   const [aidDefenders, setAidDefenders] = useState(0);
   const [aidResolved, setAidResolved] = useState(null);
 
-  const specialFacs = facilities.filter(f => f.facility_type === "special");
-  const aliveDefenders = defenders.filter(d => d.is_alive);
+  const specialFacs = (facilities || []).filter(f => f.facility_type === "special");
+  const aliveDefenders = (defenders || []).filter(d => d.is_alive);
 
   const loadTurns = useCallback(async () => {
+    if (!bastion) { setLoading(false); return; }
     try {
       const t = await db.select("bastion_turns", `bastion_id=eq.${bastion.id}&order=turn_number.desc&limit=50`);
       setTurns(t);
     } catch (e) { console.error(e); }
     setLoading(false);
-  }, [bastion.id]);
+  }, [bastion?.id]);
 
   useEffect(() => { loadTurns(); }, [loadTurns]);
 
