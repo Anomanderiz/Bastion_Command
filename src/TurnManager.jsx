@@ -498,7 +498,7 @@ export default function TurnManager({ bastion, facilities, defenders, player, sh
             </div>
           )}
         </div>
-      )}
+      ))
       )}
 
       {/* Turn History */}
