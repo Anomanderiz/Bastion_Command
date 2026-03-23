@@ -63,19 +63,26 @@ export function getTreasureFromRoll(d100) {
 }
 
 // Generate full event resolution text and any mechanical effects
-export function resolveEvent(eventKey, subRolls = {}) {
+// context: { wallsEnclosed: bool, lieutenants: number }
+export function resolveEvent(eventKey, subRolls = {}, context = {}) {
   switch (eventKey) {
     case "all_is_well": {
       const detail = ALL_IS_WELL_DETAILS[(subRolls.d8 || roll(8)) - 1];
       return { summary: "Nothing significant happens.", detail, mechanical: null };
     }
     case "attack": {
-      const dice = subRolls.attackDice || rollMultiple(6, 6);
+      const hasWalls = context.wallsEnclosed || false;
+      const lieutenants = context.lieutenants || 0;
+      let numDice = hasWalls ? 4 : 6;
+      numDice = Math.max(0, numDice - lieutenants);
+      const dice = subRolls.attackDice || rollMultiple(numDice, 6);
       const deaths = dice.filter(d => d === 1).length;
+      const wallNote = hasWalls ? " Defensive walls reduced dice from 6d6 to 4d6." : "";
+      const ltNote = lieutenants > 0 ? ` ${lieutenants} lieutenant${lieutenants > 1 ? "s" : ""} reduced dice by ${lieutenants}.` : "";
       return {
         summary: "A hostile force attacks your Bastion but is defeated.",
-        detail: `Rolled 6d6: [${dice.join(", ")}] — ${deaths} defender${deaths !== 1 ? "s" : ""} killed.`,
-        mechanical: { type: "attack", dice, deaths },
+        detail: `Rolled ${numDice}d6: [${dice.join(", ")}] — ${deaths} defender${deaths !== 1 ? "s" : ""} killed.${wallNote}${ltNote}`,
+        mechanical: { type: "attack", dice, deaths, numDice },
       };
     }
     case "criminal_hireling": {

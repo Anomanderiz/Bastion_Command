@@ -156,3 +156,151 @@ export const SPECIAL_FACILITIES = [
   { key:"construct_forge",name:"Construct Forge",level:17,set:"eberron",prereq:"Artisan's Tools as Spellcasting Focus",space:"vast",hirelings:2,order:"Recruit",
     desc:"Workshop for building Constructs.",benefits:["Recruit: Animated Armor (14d, 1,000 GP)","Recruit: Helmed Horror (42d, 5,000 GP)","Recruit: Shield Guardian (63d, 25,000 GP)","Constructs count as Bastion Defenders"],multi:false,enlarge:false},
 ];
+
+// ─── ORDER OPTIONS PER FACILITY ─────────────────────────────────
+// Each entry is an array of { name, duration (days), cost_gp }
+
+export const ORDER_OPTIONS = {
+  // Core Level 5
+  arcane_study: [
+    { name: "Craft: Arcane Focus", duration: 7, cost: 0 },
+    { name: "Craft: Book", duration: 7, cost: 10 },
+    { name: "Craft: Magic Item (Arcana)", duration: 20, cost: 250, minLevel: 9 },
+  ],
+  armory: [
+    { name: "Trade: Stock Armory", duration: 7, cost: 100, note: "+100 GP per defender; halved with Smithy" },
+  ],
+  barrack: [
+    { name: "Recruit: Bastion Defenders (4)", duration: 7, cost: 0 },
+  ],
+  garden: [
+    { name: "Harvest: Decorative", duration: 7, cost: 0 },
+    { name: "Harvest: Food", duration: 7, cost: 0 },
+    { name: "Harvest: Herb", duration: 7, cost: 0 },
+    { name: "Harvest: Poison", duration: 7, cost: 0 },
+  ],
+  library: [
+    { name: "Research: Topical Lore", duration: 7, cost: 0 },
+  ],
+  sanctuary: [
+    { name: "Craft: Sacred Focus", duration: 7, cost: 0 },
+  ],
+  smithy: [
+    { name: "Craft: Smith's Tools Item", duration: 14, cost: 50 },
+    { name: "Craft: Magic Item (Armament)", duration: 20, cost: 250, minLevel: 9 },
+  ],
+  storehouse: [
+    { name: "Trade: Procure Goods", duration: 7, cost: 500 },
+    { name: "Trade: Sell Goods", duration: 7, cost: 0 },
+  ],
+  workshop: [
+    { name: "Craft: Adventuring Gear", duration: 10, cost: 25 },
+    { name: "Craft: Magic Item (Implement)", duration: 20, cost: 250, minLevel: 9 },
+  ],
+  // Core Level 9
+  gaming_hall: [
+    { name: "Trade: Gambling Hall", duration: 7, cost: 0 },
+  ],
+  greenhouse: [
+    { name: "Harvest: Healing Herbs", duration: 7, cost: 0 },
+    { name: "Harvest: Poison", duration: 7, cost: 0 },
+  ],
+  laboratory: [
+    { name: "Craft: Alchemist's Supplies", duration: 7, cost: 25 },
+    { name: "Craft: Poison", duration: 7, cost: 50 },
+  ],
+  sacristy: [
+    { name: "Craft: Holy Water", duration: 7, cost: 0 },
+    { name: "Craft: Magic Item (Relic)", duration: 20, cost: 250 },
+  ],
+  scriptorium: [
+    { name: "Craft: Book Replica", duration: 7, cost: 10 },
+    { name: "Craft: Spell Scroll", duration: 5, cost: 100 },
+    { name: "Craft: Paperwork", duration: 7, cost: 50 },
+  ],
+  stable: [
+    { name: "Trade: Buy/Sell Animals", duration: 7, cost: 0 },
+  ],
+  teleportation_circle: [
+    { name: "Recruit: Spellcaster", duration: 7, cost: 0 },
+  ],
+  theater: [
+    { name: "Empower: Stage Production", duration: 21, cost: 100 },
+  ],
+  training_area: [
+    { name: "Empower: Training", duration: 7, cost: 0 },
+  ],
+  trophy_room: [
+    { name: "Research: Lore", duration: 7, cost: 0 },
+    { name: "Research: Trinket Trophy", duration: 7, cost: 0 },
+  ],
+  // Core Level 13
+  archive: [
+    { name: "Research: Helpful Lore", duration: 7, cost: 0 },
+  ],
+  meditation_chamber: [
+    { name: "Empower: Inner Peace", duration: 7, cost: 0 },
+  ],
+  menagerie: [
+    { name: "Recruit: Creature (Ape/Bear)", duration: 7, cost: 500 },
+    { name: "Recruit: Creature (Lion/Tiger)", duration: 7, cost: 1000 },
+    { name: "Recruit: Creature (Owlbear)", duration: 7, cost: 3500 },
+  ],
+  observatory: [
+    { name: "Empower: Eldritch Discovery", duration: 7, cost: 0 },
+  ],
+  pub: [
+    { name: "Research: Information Gathering", duration: 7, cost: 0 },
+  ],
+  reliquary: [
+    { name: "Harvest: Talisman", duration: 7, cost: 0 },
+  ],
+  // Core Level 17
+  demiplane: [
+    { name: "Empower: Arcane Resilience", duration: 7, cost: 0 },
+  ],
+  guildhall: [
+    { name: "Recruit: Guild Assignment", duration: 7, cost: 100 },
+  ],
+  sanctum: [
+    { name: "Empower: Fortifying Rites", duration: 7, cost: 0 },
+  ],
+  war_room: [
+    { name: "Recruit: Lieutenant", duration: 7, cost: 0 },
+    { name: "Recruit: Soldiers (100)", duration: 7, cost: 100 },
+  ],
+  // Forgotten Realms
+  amethyst_dragon_den: [{ name: "Empower: Psionic Defenses", duration: 7, cost: 0 }],
+  harper_hideout: [{ name: "Empower: Harper Training", duration: 7, cost: 0 }],
+  red_wizard_necropolis: [{ name: "Recruit: Undead Defenders (4)", duration: 7, cost: 0 }],
+  zhentarim_travel_station: [{ name: "Research: Reconnaissance", duration: 7, cost: 0 }],
+  emerald_enclave_grove: [{ name: "Recruit: Creature of Nature", duration: 7, cost: 0 }],
+  lords_alliance_noble_residence: [{ name: "Recruit: Visiting Noble", duration: 14, cost: 0 }],
+  order_gauntlet_tournament: [{ name: "Empower: Hold Tournament", duration: 14, cost: 2000 }],
+  cult_dragon_archive: [{ name: "Research: Helpful Lore", duration: 7, cost: 0 }],
+  // Eberron
+  dragonmark_outpost: [{ name: "Empower: House Favor", duration: 7, cost: 0 }],
+  kundarak_vault: [{ name: "Trade: Goods", duration: 7, cost: 0 }],
+  navigators_helm: [{ name: "Empower: Travel", duration: 7, cost: 0 }],
+  orien_helm: [{ name: "Empower: Travel", duration: 7, cost: 0 }],
+  artificers_forge: [{ name: "Craft: Magic Item", duration: 20, cost: 250 }],
+  inquisitives_agency: [{ name: "Research: Information Gathering", duration: 7, cost: 0 }],
+  lyrandar_helm: [{ name: "Empower: Travel", duration: 7, cost: 0 }],
+  manifest_zone: [{ name: "Empower: Manifest Charm", duration: 7, cost: 0 }],
+  museum: [{ name: "Research: Specialized Lore", duration: 7, cost: 0 }],
+  construct_forge: [
+    { name: "Recruit: Animated Armor", duration: 14, cost: 1000 },
+    { name: "Recruit: Helmed Horror", duration: 42, cost: 5000 },
+    { name: "Recruit: Shield Guardian", duration: 63, cost: 25000 },
+  ],
+};
+
+// ─── ENLARGEMENT COSTS ──────────────────────────────────────────
+
+export const ENLARGE_COST = { cost_gp: 2000, time_days: 80 }; // Roomy → Vast for all enlargeable facilities
+
+// ─── BARRACK CAPACITY ───────────────────────────────────────────
+
+export function getBarrackCapacity(size) {
+  return size === "vast" ? 25 : 12;
+}

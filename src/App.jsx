@@ -10,7 +10,7 @@ import {
   SET_LABELS, SET_COLORS, SPECIAL_FACILITIES,
   GARDEN_TYPES, PUB_BEVERAGES, TRAINING_TYPES, GUILD_TYPES,
   MANIFEST_PLANES, MUSEUM_CHARMS, ARCHIVE_BOOKS, WORKSHOP_TOOLS_OPTIONS,
-  getMaxSpecialFacilities,
+  getMaxSpecialFacilities, ORDER_OPTIONS, ENLARGE_COST, getBarrackCapacity,
 } from "./data.js";
 
 const DM_PASSWORD = "Blackstaff";
@@ -70,6 +70,7 @@ function LoginScreen({ onLogin }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   // DM state
+  const [dmAuthed, setDmAuthed] = useState(false);
   const [allParties, setAllParties] = useState([]);
   const [loadingParties, setLoadingParties] = useState(false);
   const [creatingParty, setCreatingParty] = useState(false);
@@ -97,6 +98,7 @@ function LoginScreen({ onLogin }) {
   function handlePasswordSubmit() {
     setError("");
     if (password !== DM_PASSWORD) { setError("Incorrect password."); return; }
+    setDmAuthed(true);
     loadParties();
   }
 
@@ -176,7 +178,7 @@ function LoginScreen({ onLogin }) {
       {/* ── DM LOGIN ── */}
       {role === "dm" && (
         <div className="card fade-in" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <button onClick={() => { setRole(null); setError(""); setAllParties([]); setCreatingParty(false); setPassword(""); }} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 13, padding: 0, textAlign: "left", textTransform: "none" }}>← Back</button>
+          <button onClick={() => { setRole(null); setError(""); setAllParties([]); setCreatingParty(false); setPassword(""); setDmAuthed(false); }} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 13, padding: 0, textAlign: "left", textTransform: "none" }}>← Back</button>
           <h3 style={{ fontSize: 16, color: "var(--crimson-bright)" }}>👑 Dungeon Master</h3>
 
           {/* Password gate */}
@@ -335,12 +337,14 @@ function FacilityOptions({ facility, facilityDef, db, onReload, showToast, readO
 
 // ─── BASTION VIEW ───────────────────────────────────────────────
 
-function BastionView({ bastion, facilities, defenders, hirelings, player, onRemoveFacility, onAddDefender, onAddHireling, db, onReload, showToast, readOnly }) {
+function BastionView({ bastion, facilities, defenders, hirelings, player, onRemoveFacility, onAddDefender, onAddHireling, onEnlargeFacility, onUpdateWalls, onSwapFacility, db, onReload, showToast, readOnly }) {
   const [newDefName, setNewDefName] = useState("");
   const [defFacility, setDefFacility] = useState("");
   const [showHireForm, setShowHireForm] = useState(null);
   const [hireName, setHireName] = useState("");
   const [hireRole, setHireRole] = useState("");
+  const [swappingFac, setSwappingFac] = useState(null);
+  const [swapTarget, setSwapTarget] = useState("");
   const specialFacs = facilities.filter(f => f.facility_type === "special");
   const basicFacs = facilities.filter(f => f.facility_type === "basic");
   const aliveDefenders = defenders.filter(d => d.is_alive);
@@ -372,6 +376,17 @@ function BastionView({ bastion, facilities, defenders, hirelings, player, onRemo
                   </div>
                   {def && <p style={{ fontSize: 13, color: "var(--text-dim)" }}>{def.desc}</p>}
                   <FacilityOptions facility={f} facilityDef={def} db={db} onReload={onReload} showToast={showToast} readOnly={readOnly} />
+                  {f.order_status && f.order_duration > 0 && (
+                    <div style={{ marginTop: 6, padding: "6px 8px", background: "var(--bg-deep)", borderRadius: 4 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: f.order_progress >= f.order_duration ? "var(--green)" : "var(--gold-dim)", marginBottom: 3 }}>
+                        <span>{f.order_status}</span>
+                        <span>{f.order_progress >= f.order_duration ? "✓ Complete" : `${f.order_progress}/${f.order_duration} days`}</span>
+                      </div>
+                      <div style={{ height: 5, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${Math.min(100, (f.order_progress / f.order_duration) * 100)}%`, background: f.order_progress >= f.order_duration ? "var(--green)" : "var(--gold)", borderRadius: 3, transition: "width 0.3s" }} />
+                      </div>
+                    </div>
+                  )}
                   <div style={{ marginTop: 6 }}>
                     <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase" }}>Hirelings ({facHirelings.length}/{def?.hirelings || "?"}):</span>{" "}
                     {facHirelings.map(h => <span key={h.id} style={{ fontSize: 12, color: "var(--text)", marginRight: 8 }}>{h.name}{h.role ? " (" + h.role + ")" : ""}</span>)}
@@ -384,8 +399,24 @@ function BastionView({ bastion, facilities, defenders, hirelings, player, onRemo
                     ) : <button onClick={() => setShowHireForm(f.id)} style={{ fontSize: 10, padding: "2px 6px", background: "none", border: "1px solid var(--border)", color: "var(--text-dim)" }}>+ Add</button>)}
                   </div>
                 </div>
-                {!readOnly && <button className="danger" onClick={() => onRemoveFacility(f.id)} style={{ fontSize: 10, padding: "4px 10px" }}>Remove</button>}
+                {!readOnly && <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {def?.enlarge && f.size !== "vast" && !f.order_status && <button onClick={() => onEnlargeFacility(f.id, f.facility_key)} style={{ fontSize: 9, padding: "3px 8px", color: "var(--blue)" }}>Enlarge (2,000 GP)</button>}
+                  {!f.order_status && <button onClick={() => setSwappingFac(swappingFac === f.id ? null : f.id)} style={{ fontSize: 9, padding: "3px 8px", color: "var(--text-dim)" }}>{swappingFac === f.id ? "Cancel" : "Swap"}</button>}
+                  <button className="danger" onClick={() => onRemoveFacility(f.id)} style={{ fontSize: 10, padding: "4px 10px" }}>Remove</button>
+                </div>}
               </div>
+              {swappingFac === f.id && (
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }} className="fade-in">
+                  <span style={{ fontSize: 11, color: "var(--text-dim)" }}>Replace with:</span>
+                  <select value={swapTarget} onChange={e => setSwapTarget(e.target.value)} style={{ fontSize: 11, padding: "4px 8px", flex: "1 1 200px" }}>
+                    <option value="">— Select facility —</option>
+                    {SPECIAL_FACILITIES.filter(sf => sf.level <= player.character_level && sf.key !== f.facility_key && (sf.multi || !specialFacs.some(x => x.facility_key === sf.key))).map(sf => (
+                      <option key={sf.key} value={sf.key}>{sf.name} (Lvl {sf.level}, {sf.order}){sf.prereq ? " ⚠" : ""}</option>
+                    ))}
+                  </select>
+                  <button className="primary" onClick={() => { if (swapTarget) { onSwapFacility(f.id, swapTarget, SPECIAL_FACILITIES.find(sf => sf.key === swapTarget)?.space || "roomy"); setSwappingFac(null); setSwapTarget(""); } }} disabled={!swapTarget} style={{ fontSize: 10, padding: "4px 12px" }}>Confirm Swap</button>
+                </div>
+              )}
             </div>
           ); })}
         </div>
@@ -404,13 +435,41 @@ function BastionView({ bastion, facilities, defenders, hirelings, player, onRemo
       <div className="card" style={{ marginBottom: 20 }}>
         {aliveDefenders.length === 0 && <p style={{ color: "var(--text-dim)", fontSize: 13 }}>No defenders.</p>}
         {aliveDefenders.length > 0 && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: readOnly ? 0 : 10 }}>{aliveDefenders.map(d => <span key={d.id} style={{ fontSize: 12, padding: "3px 10px", background: "var(--bg-deep)", border: "1px solid var(--border)", borderRadius: 3 }}>{d.name}{d.creature_type ? " (" + d.creature_type + ")" : ""}</span>)}</div>}
-        {!readOnly && barracks.length > 0 && (
-          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-            <input value={newDefName} onChange={e => setNewDefName(e.target.value)} placeholder="Defender name" style={{ padding: "4px 8px", fontSize: 12, width: 160 }} />
-            <select value={defFacility} onChange={e => setDefFacility(e.target.value)} style={{ padding: "4px 8px", fontSize: 12 }}><option value="">Select barrack...</option>{barracks.map(b => <option key={b.id} value={b.id}>Barrack ({SIZES[b.size].label})</option>)}</select>
-            <button onClick={() => { if (newDefName && defFacility) { onAddDefender(newDefName, defFacility); setNewDefName(""); } }} disabled={!newDefName || !defFacility} style={{ fontSize: 10, padding: "4px 10px" }}>Recruit</button>
+        {!readOnly && barracks.length > 0 && (() => {
+          const selBarrack = barracks.find(b => b.id === defFacility);
+          const cap = selBarrack ? getBarrackCapacity(selBarrack.size) : 12;
+          const housed = defenders.filter(d => d.is_alive && d.facility_id === defFacility).length;
+          const full = selBarrack && housed >= cap;
+          return (
+            <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              <input value={newDefName} onChange={e => setNewDefName(e.target.value)} placeholder="Defender name" style={{ padding: "4px 8px", fontSize: 12, width: 160 }} />
+              <select value={defFacility} onChange={e => setDefFacility(e.target.value)} style={{ padding: "4px 8px", fontSize: 12 }}>
+                <option value="">Select barrack...</option>
+                {barracks.map(b => { const c = getBarrackCapacity(b.size); const h = defenders.filter(d => d.is_alive && d.facility_id === b.id).length; return <option key={b.id} value={b.id}>Barrack ({SIZES[b.size].label}) — {h}/{c}</option>; })}
+              </select>
+              <button onClick={() => { if (newDefName && defFacility) { onAddDefender(newDefName, defFacility); setNewDefName(""); } }} disabled={!newDefName || !defFacility || full} style={{ fontSize: 10, padding: "4px 10px" }}>{full ? "Full" : "Recruit"}</button>
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Defensive Walls */}
+      <h3 style={{ fontSize: 15, marginBottom: 10 }}>Defensive Walls</h3>
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", fontSize: 13 }}>
+          <span>Wall squares: <strong style={{ color: "var(--gold)" }}>{bastion.defensive_wall_squares || 0}</strong></span>
+          <span>Cost: <span style={{ color: "var(--text-dim)" }}>{((bastion.defensive_wall_squares || 0) * 250).toLocaleString()} GP</span></span>
+          <span>Enclosed: <strong style={{ color: bastion.walls_fully_enclosed ? "var(--green)" : "var(--text-dim)" }}>{bastion.walls_fully_enclosed ? "Yes (−2 attack dice)" : "No"}</strong></span>
+        </div>
+        {!readOnly && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
+            <button onClick={() => onUpdateWalls((bastion.defensive_wall_squares || 0) + 1, bastion.walls_fully_enclosed)} style={{ fontSize: 10, padding: "4px 10px" }}>+1 sq (250 GP)</button>
+            <button onClick={() => onUpdateWalls((bastion.defensive_wall_squares || 0) + 4, bastion.walls_fully_enclosed)} style={{ fontSize: 10, padding: "4px 10px" }}>+4 sq (1,000 GP)</button>
+            <button onClick={() => onUpdateWalls(bastion.defensive_wall_squares || 0, !bastion.walls_fully_enclosed)} style={{ fontSize: 10, padding: "4px 10px", color: bastion.walls_fully_enclosed ? "var(--crimson-bright)" : "var(--green)" }}>{bastion.walls_fully_enclosed ? "Mark Open" : "Mark Enclosed"}</button>
+            {(bastion.defensive_wall_squares || 0) > 0 && <button onClick={() => onUpdateWalls(0, false)} className="danger" style={{ fontSize: 10, padding: "4px 10px" }}>Reset</button>}
           </div>
         )}
+        <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 8 }}>20ft high, 250 GP per 5ft square, 10 days per square to build. Fully enclosed walls reduce attack dice from 6d6 to 4d6.</p>
       </div>
     </div>
   );
@@ -482,6 +541,7 @@ function FacilityBrowser({ level, currentFacilities, maxSpecial, currentSpecialC
 
 function Dashboard({ party, role, selectedPlayer, onLogout }) {
   const isDM = role === "dm";
+  const [partyState, setPartyState] = useState(party);
   const [tab, setTab] = useState("overview");
   const [viewingPlayerId, setViewingPlayerId] = useState(selectedPlayer?.id || null);
   const [bastion, setBastion] = useState(null);
@@ -518,7 +578,7 @@ function Dashboard({ party, role, selectedPlayer, onLogout }) {
       }
     } catch (e) { console.error(e); }
     setLoading(false);
-  }, [party.id, viewingPlayerId]);
+  }, [party.id, viewingPlayerId, partyState?.current_day]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -529,6 +589,9 @@ function Dashboard({ party, role, selectedPlayer, onLogout }) {
   async function removeFacility(id) { const f = facilities.find(x => x.id === id); const fd = f ? SPECIAL_FACILITIES.find(sf => sf.key === f.facility_key) : null; await db.delete("facilities", { id }); showToast("Removed"); loadData(); sendToDiscord(msgFacilityRemoved(viewPlayer?.character_name || "", fd?.name || f?.facility_key || "")); }
   async function addDefender(name, fid) { if (!bastion) return; await db.insert("defenders", { bastion_id: bastion.id, facility_id: fid, name }); showToast("Recruited!"); loadData(); sendToDiscord(msgDefenderRecruited(viewPlayer?.character_name, bastion.name, name)); }
   async function addHireling(fid, name, role) { await db.insert("hirelings", { facility_id: fid, name, role }); showToast("Hireling added!"); loadData(); }
+  async function enlargeFacility(facId, facKey) { await db.update("facilities", { id: facId }, { order_status: "Enlarging to Vast", order_progress: 0, order_duration: ENLARGE_COST.time_days }); const fd = SPECIAL_FACILITIES.find(f => f.key === facKey); showToast(`Enlarging ${fd?.name || facKey}...`); loadData(); sendToDiscord(`🔨 ${viewPlayer?.character_name}'s **${fd?.name || facKey}** is being enlarged to Vast (${ENLARGE_COST.time_days} days, ${ENLARGE_COST.cost_gp.toLocaleString()} GP).`); }
+  async function updateWalls(squares, enclosed) { if (!bastion) return; await db.update("bastions", { id: bastion.id }, { defensive_wall_squares: squares, walls_fully_enclosed: enclosed }); showToast("Walls updated"); loadData(); }
+  async function swapFacility(oldFacId, newKey, newSpace) { await db.delete("facilities", { id: oldFacId }); await db.insert("facilities", { bastion_id: bastion.id, facility_key: newKey, facility_type: "special", size: newSpace }); const fd = SPECIAL_FACILITIES.find(f => f.key === newKey); showToast(`Swapped to ${fd?.name || newKey}`); loadData(); sendToDiscord(`🔄 ${viewPlayer?.character_name} swapped a facility for **${fd?.name || newKey}**.`); }
   async function updateLevel(pid, lvl) { await db.update("players", { id: pid }, { character_level: lvl }); showToast("Level " + lvl); loadData(); }
   async function removePlayer(pid) { const m = partyMembers.find(x => x.id === pid); await db.delete("players", { id: pid }); showToast("Removed"); loadData(); if (m) sendToDiscord(msgPlayerRemoved(m.character_name)); if (viewingPlayerId === pid) { const next = partyMembers.find(x => x.id !== pid); if (next) switchPlayer(next.id); } }
   async function deleteParty() { await db.delete("parties", { id: party.id }); localStorage.removeItem("bastion_session"); setTimeout(() => window.location.reload(), 1000); }
@@ -561,12 +624,12 @@ function Dashboard({ party, role, selectedPlayer, onLogout }) {
           : !bastion ? (isDM ? <CreateBastionForm onCreate={createBastion} /> : <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 40 }}>No bastion for {viewPlayer.character_name} yet.</p>)
           : <>
               {isDM && <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>Managing: <strong style={{ color: "var(--gold)" }}>{viewPlayer.character_name}</strong></p>}
-              <BastionView bastion={bastion} facilities={facilities} defenders={defenders} hirelings={hirelingList} player={viewPlayer} onRemoveFacility={removeFacility} onAddDefender={addDefender} onAddHireling={addHireling} db={db} onReload={loadData} showToast={showToast} readOnly={!isDM} />
+              <BastionView bastion={bastion} facilities={facilities} defenders={defenders} hirelings={hirelingList} player={viewPlayer} onRemoveFacility={removeFacility} onAddDefender={addDefender} onAddHireling={addHireling} onEnlargeFacility={enlargeFacility} onUpdateWalls={updateWalls} onSwapFacility={swapFacility} db={db} onReload={loadData} showToast={showToast} readOnly={!isDM} />
             </>}
         </div>
       )}
 
-      {tab === "turns" && <div className="fade-in">{viewPlayer && isDM && <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>Turns for: <strong style={{ color: "var(--gold)" }}>{viewPlayer.character_name}</strong></p>}<TurnManager bastion={bastion} facilities={facilities} defenders={defenders} player={viewPlayer} showToast={showToast} onReload={loadData} readOnly={!isDM} /></div>}
+      {tab === "turns" && <div className="fade-in">{viewPlayer && isDM && <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>Turns for: <strong style={{ color: "var(--gold)" }}>{viewPlayer.character_name}</strong></p>}<TurnManager bastion={bastion} facilities={facilities} defenders={defenders} player={viewPlayer} showToast={showToast} onReload={loadData} readOnly={!isDM} party={partyState} onUpdateParty={setPartyState} /></div>}
 
       {tab === "facilities" && isDM && (
         <div className="fade-in">
