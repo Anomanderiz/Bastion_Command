@@ -499,7 +499,7 @@ export default function TurnManager({ bastion, facilities, defenders, player, sh
           )}
         </div>
       ))
-      )}
+      }}
 
       {/* Turn History */}
       <div style={{ marginTop: 24 }}>
