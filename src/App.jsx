@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { db } from "./supabase.js";
+import TurnManager from "./TurnManager.jsx";
+import {
+  sendToDiscord, msgBastionCreated, msgFacilityAdded,
+  msgFacilityRemoved, msgDefenderRecruited, msgPlayerRemoved,
+} from "./discord.js";
 import {
   CLASSES, AVATAR_COLORS, SIZES, BASIC_FACILITIES, ORDER_TYPES,
   SET_LABELS, SET_COLORS, SPECIAL_FACILITIES,
@@ -261,9 +266,87 @@ function CreateBastionForm({ onCreate }) {
   );
 }
 
+// ─── FACILITY OPTIONS EDITOR ─────────────────────────────────────
+
+function FacilityOptions({ facility, facilityDef, db, onReload, showToast }) {
+  if (!facilityDef?.hasOptions) return null;
+
+  async function updateOption(field, value) {
+    try {
+      await db.update("facilities", { id: facility.id }, { [field]: value });
+      if (showToast) showToast("Option updated");
+      if (onReload) onReload();
+    } catch (e) { console.error(e); }
+  }
+
+  const optStyle = { fontSize: 12, padding: "3px 6px", background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 3 };
+  const labelStyle = { fontSize: 11, color: "var(--text-dim)", marginRight: 4 };
+
+  return (
+    <div style={{ marginTop: 6, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+      {facilityDef.hasOptions === "garden_type" && (
+        <span><span style={labelStyle}>Garden:</span>
+          <select value={facility.garden_type || ""} onChange={e => updateOption("garden_type", e.target.value)} style={optStyle}>
+            {GARDEN_TYPES.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </span>
+      )}
+      {facilityDef.hasOptions === "pub_beverage" && (
+        <span><span style={labelStyle}>Beverage:</span>
+          <select value={facility.pub_beverage || ""} onChange={e => updateOption("pub_beverage", e.target.value)} style={optStyle}>
+            {PUB_BEVERAGES.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </span>
+      )}
+      {facilityDef.hasOptions === "training_type" && (
+        <span><span style={labelStyle}>Trainer:</span>
+          <select value={facility.training_type || ""} onChange={e => updateOption("training_type", e.target.value)} style={optStyle}>
+            {TRAINING_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </span>
+      )}
+      {facilityDef.hasOptions === "guild_type" && (
+        <span><span style={labelStyle}>Guild:</span>
+          <select value={facility.guild_type || ""} onChange={e => updateOption("guild_type", e.target.value)} style={optStyle}>
+            {GUILD_TYPES.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </span>
+      )}
+      {facilityDef.hasOptions === "manifest_plane" && (
+        <span><span style={labelStyle}>Plane:</span>
+          <select value={facility.manifest_plane || ""} onChange={e => updateOption("manifest_plane", e.target.value)} style={optStyle}>
+            {MANIFEST_PLANES.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </span>
+      )}
+      {facilityDef.hasOptions === "museum_charm" && (
+        <span><span style={labelStyle}>Origin:</span>
+          <select value={facility.museum_charm || ""} onChange={e => updateOption("museum_charm", e.target.value)} style={optStyle}>
+            {MUSEUM_CHARMS.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </span>
+      )}
+      {facilityDef.hasOptions === "archive_books" && (
+        <span><span style={labelStyle}>Book:</span>
+          <select value={(facility.archive_books || [])[0] || ""} onChange={e => updateOption("archive_books", [e.target.value])} style={optStyle}>
+            {ARCHIVE_BOOKS.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </span>
+      )}
+      {facilityDef.hasOptions === "workshop_tools" && (
+        <span><span style={labelStyle}>Tools:</span>
+          <span style={{ fontSize: 11, color: "var(--text-dim)" }}>
+            {(facility.workshop_tools || []).join(", ") || "Not configured"}
+          </span>
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ─── BASTION VIEW ───────────────────────────────────────────────
 
-function BastionView({ bastion, facilities, defenders, hirelings, player, onRemoveFacility, onAddDefender, onAddHireling }) {
+function BastionView({ bastion, facilities, defenders, hirelings, player, onRemoveFacility, onAddDefender, onAddHireling, db, onReload, showToast }) {
   const [newDefName, setNewDefName] = useState("");
   const [defFacility, setDefFacility] = useState("");
   const [showHireForm, setShowHireForm] = useState(null);
@@ -309,9 +392,7 @@ function BastionView({ bastion, facilities, defenders, hirelings, player, onRemo
                       {def && <span className="badge" style={{ background: "var(--bg-deep)", color: "var(--text-dim)", border: "1px solid var(--border)", fontSize: 10 }}>{def.order}</span>}
                     </div>
                     {def && <p style={{ fontSize: 13, color: "var(--text-dim)" }}>{def.desc}</p>}
-                    {f.garden_type && <p style={{ fontSize: 12, color: "var(--green)" }}>Type: {f.garden_type}</p>}
-                    {f.pub_beverage && <p style={{ fontSize: 12, color: "var(--blue)" }}>Beverage: {f.pub_beverage}</p>}
-                    {f.training_type && <p style={{ fontSize: 12, color: "var(--blue)" }}>Trainer: {f.training_type}</p>}
+                    <FacilityOptions facility={f} facilityDef={def} db={db} onReload={onReload} showToast={showToast} />
                     <div style={{ marginTop: 6 }}>
                       <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase" }}>
                         Hirelings ({facHirelings.length}/{def?.hirelings || "?"}):
@@ -526,20 +607,29 @@ function Dashboard({ db, party, player: initialPlayer }) {
   async function createBastion(name, desc) {
     const [b] = await db.insert("bastions", { player_id: player.id, name, description: desc });
     setBastion(b); showToast("Bastion created!"); loadData();
+    sendToDiscord(msgBastionCreated(player.character_name, name, desc));
   }
 
   async function addFacility(facilityKey, type, size, options = {}) {
     await db.insert("facilities", { bastion_id: bastion.id, facility_key: facilityKey, facility_type: type, size, ...options });
+    const facDef = SPECIAL_FACILITIES.find(f => f.key === facilityKey);
+    const displayName = facDef?.name || facilityKey.replace(/_/g, " ");
     showToast("Facility added!"); loadData();
+    sendToDiscord(msgFacilityAdded(player.character_name, displayName, type));
   }
 
   async function removeFacility(facId) {
+    const fac = facilities.find(f => f.id === facId);
+    const facDef = fac ? SPECIAL_FACILITIES.find(sf => sf.key === fac.facility_key) : null;
+    const displayName = facDef?.name || fac?.facility_key?.replace(/_/g, " ") || "facility";
     await db.delete("facilities", { id: facId }); showToast("Facility removed"); loadData();
+    sendToDiscord(msgFacilityRemoved(player.character_name, displayName));
   }
 
   async function addDefender(name, facilityId) {
     await db.insert("defenders", { bastion_id: bastion.id, facility_id: facilityId, name });
     showToast("Defender recruited!"); loadData();
+    sendToDiscord(msgDefenderRecruited(player.character_name, bastion.name, name));
   }
 
   async function addHireling(facilityId, name, role) {
@@ -592,6 +682,7 @@ function Dashboard({ db, party, player: initialPlayer }) {
 
       <Tabs tabs={[
         { key: "bastion", label: "My Bastion" },
+        { key: "turns", label: "Turns" },
         { key: "facilities", label: "Add Facilities" },
         { key: "party", label: `Party (${partyMembers.length})` },
         ...(player.is_dm ? [{ key: "dm", label: "⚙ DM Panel" }] : []),
@@ -604,8 +695,15 @@ function Dashboard({ db, party, player: initialPlayer }) {
           ) : (
             <BastionView bastion={bastion} facilities={facilities} defenders={defenders}
               hirelings={hirelingList} player={player} onRemoveFacility={removeFacility}
-              onAddDefender={addDefender} onAddHireling={addHireling} />
+              onAddDefender={addDefender} onAddHireling={addHireling} db={db} onReload={loadData} showToast={showToast} />
           )}
+        </div>
+      )}
+
+      {tab === "turns" && (
+        <div className="fade-in">
+          <TurnManager bastion={bastion} facilities={facilities} defenders={defenders}
+            player={player} showToast={showToast} onReload={loadData} />
         </div>
       )}
 
@@ -722,11 +820,12 @@ function DMPanel({ db, party, partyMembers, partyBastions, currentPlayerId, show
 
   async function removePlayer(playerId) {
     try {
-      // Deleting the player cascades to their bastion, facilities, etc.
+      const member = partyMembers.find(m => m.id === playerId);
       await db.delete("players", { id: playerId });
       showToast("Player removed");
       setConfirmRemove(null);
       onReload();
+      if (member) sendToDiscord(msgPlayerRemoved(member.character_name));
     } catch (e) { showToast("Error: " + e.message); }
   }
 
