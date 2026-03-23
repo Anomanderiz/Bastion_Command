@@ -13,46 +13,26 @@ import {
   getMaxSpecialFacilities,
 } from "./data.js";
 
-// ─── SMALL COMPONENTS ───────────────────────────────────────────
+const DM_PASSWORD = "Blackstaff";
 
 function Spinner() {
   return (
     <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
-      <div style={{
-        width: 28, height: 28,
-        border: "3px solid var(--border)", borderTopColor: "var(--gold)",
-        borderRadius: "50%", animation: "spin 0.8s linear infinite",
-      }} />
+      <div style={{ width: 28, height: 28, border: "3px solid var(--border)", borderTopColor: "var(--gold)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
     </div>
   );
 }
 
 function Toast({ message, onClose }) {
-  useEffect(() => {
-    const t = setTimeout(onClose, 3500);
-    return () => clearTimeout(t);
-  }, [onClose]);
-  return (
-    <div className="fade-in" style={{
-      position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
-      background: "var(--bg-card)", border: "1px solid var(--gold-dim)",
-      padding: "10px 24px", borderRadius: 6, zIndex: 999, fontSize: 14, color: "var(--gold)",
-    }}>{message}</div>
-  );
+  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
+  return <div className="fade-in" style={{ position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)", background: "var(--bg-card)", border: "1px solid var(--gold-dim)", padding: "10px 24px", borderRadius: 6, zIndex: 999, fontSize: 14, color: "var(--gold)" }}>{message}</div>;
 }
 
 function Tabs({ tabs, active, onChange }) {
   return (
     <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--border)", marginBottom: 20, overflowX: "auto" }}>
       {tabs.map(t => (
-        <button key={t.key} onClick={() => onChange(t.key)} style={{
-          border: "none",
-          borderBottom: active === t.key ? "2px solid var(--gold)" : "2px solid transparent",
-          background: "none",
-          color: active === t.key ? "var(--gold)" : "var(--text-dim)",
-          padding: "10px 20px", borderRadius: 0, textTransform: "uppercase",
-          fontSize: 12, letterSpacing: 1, whiteSpace: "nowrap",
-        }}>{t.label}</button>
+        <button key={t.key} onClick={() => onChange(t.key)} style={{ border: "none", borderBottom: active === t.key ? "2px solid var(--gold)" : "2px solid transparent", background: "none", color: active === t.key ? "var(--gold)" : "var(--text-dim)", padding: "10px 20px", borderRadius: 0, textTransform: "uppercase", fontSize: 12, letterSpacing: 1, whiteSpace: "nowrap" }}>{t.label}</button>
       ))}
     </div>
   );
@@ -67,278 +47,175 @@ function FacilityCard({ fac, onAdd, added, disabled }) {
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
             <h4 style={{ fontSize: 16, margin: 0 }}>{fac.name}</h4>
-            <span className="badge" style={{ background: setColor + "22", color: setColor, border: `1px solid ${setColor}44` }}>{SET_LABELS[fac.set]}</span>
+            <span className="badge" style={{ background: setColor + "22", color: setColor, border: "1px solid " + setColor + "44" }}>{SET_LABELS[fac.set]}</span>
             <span className="badge" style={{ background: "var(--bg-deep)", color: "var(--text-dim)", border: "1px solid var(--border)" }}>Lvl {fac.level}</span>
             <span className="badge" style={{ background: "var(--bg-deep)", color: "var(--text-dim)", border: "1px solid var(--border)" }}>{fac.order}</span>
           </div>
           <p style={{ fontSize: 14, color: "var(--text-dim)", margin: "4px 0" }}>{fac.desc}</p>
           {fac.prereq && <p style={{ fontSize: 12, color: "var(--crimson-bright)", marginTop: 4 }}>Requires: {fac.prereq}</p>}
-          <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2 }}>
-            {SIZES[fac.space].label} · {fac.hirelings} hireling{fac.hirelings > 1 ? "s" : ""}
-            {fac.multi ? " · Can have multiple" : ""}{fac.enlarge ? " · Enlargeable" : ""}
-          </p>
+          <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2 }}>{SIZES[fac.space].label} · {fac.hirelings} hireling{fac.hirelings > 1 ? "s" : ""}{fac.multi ? " · Can have multiple" : ""}{fac.enlarge ? " · Enlargeable" : ""}</p>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
-          {onAdd && (
-            <button className="primary" onClick={() => onAdd(fac)} disabled={disabled || added}
-              style={{ fontSize: 11, padding: "6px 14px", whiteSpace: "nowrap" }}>
-              {added ? "✓ Added" : "Add"}
-            </button>
-          )}
-        </div>
+        {onAdd && <button className="primary" onClick={() => onAdd(fac)} disabled={disabled || added} style={{ fontSize: 11, padding: "6px 14px", whiteSpace: "nowrap" }}>{added ? "✓ Added" : "Add"}</button>}
       </div>
-      <button onClick={() => setOpen(!open)} style={{
-        background: "none", border: "none", color: "var(--gold-dim)", fontSize: 12,
-        padding: "4px 0", marginTop: 8, textTransform: "none", letterSpacing: 0,
-      }}>
-        {open ? "▾ Hide details" : "▸ Show details"}
-      </button>
-      {open && (
-        <ul style={{ marginTop: 8, paddingLeft: 18, fontSize: 13, color: "var(--text)" }}>
-          {fac.benefits.map((b, i) => <li key={i} style={{ marginBottom: 3 }}>{b}</li>)}
-        </ul>
-      )}
+      <button onClick={() => setOpen(!open)} style={{ background: "none", border: "none", color: "var(--gold-dim)", fontSize: 12, padding: "4px 0", marginTop: 8, textTransform: "none", letterSpacing: 0 }}>{open ? "▾ Hide details" : "▸ Show details"}</button>
+      {open && <ul style={{ marginTop: 8, paddingLeft: 18, fontSize: 13, color: "var(--text)" }}>{fac.benefits.map((b, i) => <li key={i} style={{ marginBottom: 3 }}>{b}</li>)}</ul>}
     </div>
   );
 }
 
-// ─── PARTY SCREEN ───────────────────────────────────────────────
+// ─── LOGIN SCREEN ───────────────────────────────────────────────
 
-function PartyScreen({ db, clientId, onJoin }) {
-  const [mode, setMode] = useState(null);
-  const [partyName, setPartyName] = useState("");
+function LoginScreen({ onLogin }) {
+  const [role, setRole] = useState(null);
+  const [password, setPassword] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [charName, setCharName] = useState("");
   const [charClass, setCharClass] = useState("Fighter");
   const [charLevel, setCharLevel] = useState(5);
-  const [isDM, setIsDM] = useState(false);
   const [color, setColor] = useState(AVATAR_COLORS[0]);
+  const [partyName, setPartyName] = useState("");
+  const [dmMode, setDmMode] = useState(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    (async () => {
+  async function handleDMLogin() {
+    setError("");
+    if (password !== DM_PASSWORD) { setError("Incorrect password."); return; }
+    if (dmMode === "create") {
+      if (!partyName) { setError("Enter a party name."); return; }
       try {
-        const players = await db.select("players", `client_id=eq.${clientId}&select=*,parties:party_id(*)`);
-        if (players.length > 0) {
-          onJoin(players[0].parties, players[0]);
-          return;
-        }
-      } catch { /* no existing player */ }
-      setLoading(false);
-    })();
-  }, []);
-
-  async function handleCreate() {
-    setError("");
-    if (!partyName || !charName) { setError("Fill in all fields"); return; }
-    try {
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const [party] = await db.insert("parties", { name: partyName, join_code: code, dm_client_id: isDM ? clientId : null });
-      const [player] = await db.insert("players", {
-        party_id: party.id, client_id: clientId, character_name: charName,
-        character_class: charClass, character_level: charLevel, is_dm: isDM, avatar_color: color,
-      });
-      onJoin(party, player);
-    } catch (e) { setError("Failed to create party: " + e.message); }
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const [party] = await db.insert("parties", { name: partyName, join_code: code });
+        localStorage.setItem("bastion_session", JSON.stringify({ role: "dm", partyId: party.id }));
+        onLogin("dm", party, null);
+      } catch (e) { setError("Failed: " + e.message); }
+    } else if (dmMode === "join") {
+      if (!joinCode) { setError("Enter a join code."); return; }
+      try {
+        const parties = await db.select("parties", "join_code=eq." + joinCode.toUpperCase());
+        if (!parties.length) { setError("No party found with that code."); return; }
+        localStorage.setItem("bastion_session", JSON.stringify({ role: "dm", partyId: parties[0].id }));
+        onLogin("dm", parties[0], null);
+      } catch (e) { setError("Failed: " + e.message); }
+    }
   }
 
-  async function handleJoin() {
+  async function handlePlayerLogin() {
     setError("");
-    if (!joinCode || !charName) { setError("Fill in all fields"); return; }
+    if (!joinCode || !charName) { setError("Fill in all fields."); return; }
     try {
-      const parties = await db.select("parties", `join_code=eq.${joinCode.toUpperCase()}`);
-      if (!parties.length) { setError("No party found with that code"); return; }
+      const parties = await db.select("parties", "join_code=eq." + joinCode.toUpperCase());
+      if (!parties.length) { setError("No party found with that code."); return; }
       const party = parties[0];
-      const [player] = await db.insert("players", {
-        party_id: party.id, client_id: clientId, character_name: charName,
-        character_class: charClass, character_level: charLevel, is_dm: isDM, avatar_color: color,
-      });
-      onJoin(party, player);
-    } catch (e) { setError("Failed to join: " + e.message); }
+      const clientId = localStorage.getItem("bastion_client_id");
+      const existing = await db.select("players", "party_id=eq." + party.id + "&client_id=eq." + clientId);
+      if (existing.length > 0) {
+        localStorage.setItem("bastion_session", JSON.stringify({ role: "player", partyId: party.id, playerId: existing[0].id }));
+        onLogin("player", party, existing[0]);
+        return;
+      }
+      const [player] = await db.insert("players", { party_id: party.id, client_id: clientId, character_name: charName, character_class: charClass, character_level: charLevel, is_dm: false, avatar_color: color });
+      localStorage.setItem("bastion_session", JSON.stringify({ role: "player", partyId: party.id, playerId: player.id }));
+      onLogin("player", party, player);
+    } catch (e) { setError("Failed: " + e.message); }
   }
-
-  if (loading) return <Spinner />;
 
   return (
-    <div style={{ maxWidth: 520, margin: "60px auto", padding: "0 20px" }} className="fade-in">
-      <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <h1 style={{ fontSize: 28, letterSpacing: 2, marginBottom: 8 }}>⚔ Bastion Manager</h1>
-        <p style={{ color: "var(--text-dim)" }}>Create or join a party</p>
+    <div style={{ maxWidth: 480, margin: "80px auto", padding: "0 20px" }} className="fade-in">
+      <div style={{ textAlign: "center", marginBottom: 40 }}>
+        <h1 style={{ fontSize: 32, marginBottom: 8, letterSpacing: 2 }}>⚔ Bastion Command</h1>
+        <p style={{ color: "var(--text-dim)", fontSize: 16 }}>D&D 2024 Bastion Manager</p>
       </div>
-      {!mode ? (
+      {!role && (
         <div style={{ display: "flex", gap: 16 }}>
-          <div className="card" style={{ flex: 1, textAlign: "center", cursor: "pointer" }} onClick={() => setMode("create")}>
-            <h3 style={{ fontSize: 16, marginBottom: 8 }}>Create Party</h3>
-            <p style={{ fontSize: 13, color: "var(--text-dim)" }}>Start a new campaign and invite your players</p>
+          <div className="card" style={{ flex: 1, textAlign: "center", cursor: "pointer", borderColor: "var(--crimson)" }} onClick={() => setRole("dm")}>
+            <h3 style={{ fontSize: 16, marginBottom: 8, color: "var(--crimson-bright)" }}>👑 Dungeon Master</h3>
+            <p style={{ fontSize: 13, color: "var(--text-dim)" }}>Full control over all bastions and party</p>
           </div>
-          <div className="card" style={{ flex: 1, textAlign: "center", cursor: "pointer" }} onClick={() => setMode("join")}>
-            <h3 style={{ fontSize: 16, marginBottom: 8 }}>Join Party</h3>
-            <p style={{ fontSize: 13, color: "var(--text-dim)" }}>Enter a code to join an existing party</p>
+          <div className="card" style={{ flex: 1, textAlign: "center", cursor: "pointer" }} onClick={() => setRole("player")}>
+            <h3 style={{ fontSize: 16, marginBottom: 8 }}>⚔ Player</h3>
+            <p style={{ fontSize: 13, color: "var(--text-dim)" }}>View your party's bastions</p>
           </div>
         </div>
-      ) : (
-        <div className="card" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <button onClick={() => setMode(null)} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 13, padding: 0, textAlign: "left", textTransform: "none" }}>← Back</button>
-          {mode === "create" && (
-            <div>
+      )}
+      {role === "dm" && (
+        <div className="card fade-in" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <button onClick={() => { setRole(null); setDmMode(null); setError(""); }} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 13, padding: 0, textAlign: "left", textTransform: "none" }}>← Back</button>
+          <h3 style={{ fontSize: 16, color: "var(--crimson-bright)" }}>👑 DM Login</h3>
+          <div>
+            <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter DM password" style={{ width: "100%", marginTop: 4 }} />
+          </div>
+          {!dmMode && password === DM_PASSWORD && (
+            <div style={{ display: "flex", gap: 12 }} className="fade-in">
+              <div className="card" style={{ flex: 1, textAlign: "center", cursor: "pointer", padding: 12 }} onClick={() => setDmMode("create")}><h4 style={{ fontSize: 13, margin: 0 }}>Create Party</h4></div>
+              <div className="card" style={{ flex: 1, textAlign: "center", cursor: "pointer", padding: 12 }} onClick={() => setDmMode("join")}><h4 style={{ fontSize: 13, margin: 0 }}>Join Existing</h4></div>
+            </div>
+          )}
+          {dmMode === "create" && (
+            <div className="fade-in">
               <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Party Name</label>
               <input value={partyName} onChange={e => setPartyName(e.target.value)} placeholder="The Swords of Waterdeep" style={{ width: "100%", marginTop: 4 }} />
             </div>
           )}
-          {mode === "join" && (
-            <div>
+          {dmMode === "join" && (
+            <div className="fade-in">
               <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Join Code</label>
               <input value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="ABC123" style={{ width: "100%", marginTop: 4, textTransform: "uppercase" }} maxLength={6} />
             </div>
           )}
+          {error && <p style={{ color: "var(--crimson-bright)", fontSize: 13 }}>{error}</p>}
+          {dmMode && <button className="primary" onClick={handleDMLogin} style={{ width: "100%", padding: 12 }}>Enter as DM</button>}
+        </div>
+      )}
+      {role === "player" && (
+        <div className="card fade-in" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <button onClick={() => { setRole(null); setError(""); }} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 13, padding: 0, textAlign: "left", textTransform: "none" }}>← Back</button>
+          <h3 style={{ fontSize: 16 }}>⚔ Player Login</h3>
+          <div>
+            <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Join Code</label>
+            <input value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="ABC123" style={{ width: "100%", marginTop: 4, textTransform: "uppercase" }} maxLength={6} />
+          </div>
           <div className="divider" />
           <h4 style={{ fontSize: 14 }}>Your Character</h4>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div>
-              <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Name</label>
-              <input value={charName} onChange={e => setCharName(e.target.value)} placeholder="Kira" style={{ width: "100%", marginTop: 4 }} />
-            </div>
-            <div>
-              <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Class</label>
-              <select value={charClass} onChange={e => setCharClass(e.target.value)} style={{ width: "100%", marginTop: 4 }}>
-                {CLASSES.map(c => <option key={c}>{c}</option>)}
-              </select>
-            </div>
+            <div><label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Name</label><input value={charName} onChange={e => setCharName(e.target.value)} placeholder="Kira" style={{ width: "100%", marginTop: 4 }} /></div>
+            <div><label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Class</label><select value={charClass} onChange={e => setCharClass(e.target.value)} style={{ width: "100%", marginTop: 4 }}>{CLASSES.map(c => <option key={c}>{c}</option>)}</select></div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div>
-              <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Level</label>
-              <input type="number" min={1} max={20} value={charLevel} onChange={e => setCharLevel(parseInt(e.target.value) || 1)} style={{ width: "100%", marginTop: 4 }} />
-            </div>
-            <div>
-              <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Role</label>
-              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                <button onClick={() => setIsDM(false)} style={{ flex: 1, fontSize: 11, padding: "8px", background: !isDM ? "var(--border-gold)" : "var(--bg-input)", border: !isDM ? "1px solid var(--gold)" : "1px solid var(--border)" }}>Player</button>
-                <button onClick={() => setIsDM(true)} style={{ flex: 1, fontSize: 11, padding: "8px", background: isDM ? "var(--border-gold)" : "var(--bg-input)", border: isDM ? "1px solid var(--gold)" : "1px solid var(--border)" }}>DM</button>
-              </div>
-            </div>
-          </div>
+          <div><label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Level</label><input type="number" min={1} max={20} value={charLevel} onChange={e => setCharLevel(parseInt(e.target.value) || 1)} style={{ width: "100%", marginTop: 4 }} /></div>
           <div>
             <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Color</label>
             <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-              {AVATAR_COLORS.map(c => (
-                <div key={c} onClick={() => setColor(c)} style={{
-                  width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer",
-                  border: color === c ? "2px solid var(--text-bright)" : "2px solid transparent",
-                }} />
-              ))}
+              {AVATAR_COLORS.map(c => <div key={c} onClick={() => setColor(c)} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: color === c ? "2px solid var(--text-bright)" : "2px solid transparent" }} />)}
             </div>
           </div>
           {error && <p style={{ color: "var(--crimson-bright)", fontSize: 13 }}>{error}</p>}
-          <button className="primary" onClick={mode === "create" ? handleCreate : handleJoin} style={{ width: "100%", padding: 12, marginTop: 4 }}>
-            {mode === "create" ? "Create Party" : "Join Party"}
-          </button>
+          <button className="primary" onClick={handlePlayerLogin} style={{ width: "100%", padding: 12 }}>Join Party</button>
         </div>
       )}
     </div>
   );
 }
 
-// ─── CREATE BASTION FORM ────────────────────────────────────────
+// ─── FACILITY OPTIONS ───────────────────────────────────────────
 
-function CreateBastionForm({ onCreate }) {
-  const [name, setName] = useState("");
-  const [desc, setDesc] = useState("");
-  return (
-    <div className="card" style={{ maxWidth: 500, margin: "40px auto", textAlign: "center" }}>
-      <h3 style={{ marginBottom: 16 }}>Establish Your Bastion</h3>
-      <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 20 }}>
-        Name your stronghold and describe what form it takes — a tower, a shrine, a hidden cellar, a fortified keep...
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, textAlign: "left" }}>
-        <div>
-          <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Bastion Name</label>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="The Ember Sanctum" style={{ width: "100%", marginTop: 4 }} />
-        </div>
-        <div>
-          <label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Description</label>
-          <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="A converted watchtower overlooking the harbor..." style={{ width: "100%", marginTop: 4, minHeight: 60, resize: "vertical" }} />
-        </div>
-        <button className="primary" onClick={() => onCreate(name, desc)} disabled={!name} style={{ width: "100%", padding: 12 }}>Establish Bastion</button>
-      </div>
-    </div>
-  );
-}
-
-// ─── FACILITY OPTIONS EDITOR ─────────────────────────────────────
-
-function FacilityOptions({ facility, facilityDef, db, onReload, showToast }) {
+function FacilityOptions({ facility, facilityDef, db, onReload, showToast, readOnly }) {
   if (!facilityDef?.hasOptions) return null;
-
   async function updateOption(field, value) {
-    try {
-      await db.update("facilities", { id: facility.id }, { [field]: value });
-      if (showToast) showToast("Option updated");
-      if (onReload) onReload();
-    } catch (e) { console.error(e); }
+    try { await db.update("facilities", { id: facility.id }, { [field]: value }); if (showToast) showToast("Option updated"); if (onReload) onReload(); } catch (e) { console.error(e); }
   }
-
   const optStyle = { fontSize: 12, padding: "3px 6px", background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 3 };
   const labelStyle = { fontSize: 11, color: "var(--text-dim)", marginRight: 4 };
-
+  const optMap = { garden_type: { label: "Garden", value: facility.garden_type, options: GARDEN_TYPES }, pub_beverage: { label: "Beverage", value: facility.pub_beverage, options: PUB_BEVERAGES }, training_type: { label: "Trainer", value: facility.training_type, options: TRAINING_TYPES }, guild_type: { label: "Guild", value: facility.guild_type, options: GUILD_TYPES }, manifest_plane: { label: "Plane", value: facility.manifest_plane, options: MANIFEST_PLANES }, museum_charm: { label: "Origin", value: facility.museum_charm, options: MUSEUM_CHARMS }, archive_books: { label: "Book", value: (facility.archive_books || [])[0], options: ARCHIVE_BOOKS } };
+  if (facilityDef.hasOptions === "workshop_tools") return <div style={{ marginTop: 6 }}><span style={labelStyle}>Tools:</span><span style={{ fontSize: 11, color: "var(--text-dim)" }}>{(facility.workshop_tools || []).join(", ") || "Not configured"}</span></div>;
+  const opt = optMap[facilityDef.hasOptions];
+  if (!opt) return null;
   return (
     <div style={{ marginTop: 6, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-      {facilityDef.hasOptions === "garden_type" && (
-        <span><span style={labelStyle}>Garden:</span>
-          <select value={facility.garden_type || ""} onChange={e => updateOption("garden_type", e.target.value)} style={optStyle}>
-            {GARDEN_TYPES.map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
-        </span>
-      )}
-      {facilityDef.hasOptions === "pub_beverage" && (
-        <span><span style={labelStyle}>Beverage:</span>
-          <select value={facility.pub_beverage || ""} onChange={e => updateOption("pub_beverage", e.target.value)} style={optStyle}>
-            {PUB_BEVERAGES.map(b => <option key={b} value={b}>{b}</option>)}
-          </select>
-        </span>
-      )}
-      {facilityDef.hasOptions === "training_type" && (
-        <span><span style={labelStyle}>Trainer:</span>
-          <select value={facility.training_type || ""} onChange={e => updateOption("training_type", e.target.value)} style={optStyle}>
-            {TRAINING_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </span>
-      )}
-      {facilityDef.hasOptions === "guild_type" && (
-        <span><span style={labelStyle}>Guild:</span>
-          <select value={facility.guild_type || ""} onChange={e => updateOption("guild_type", e.target.value)} style={optStyle}>
-            {GUILD_TYPES.map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
-        </span>
-      )}
-      {facilityDef.hasOptions === "manifest_plane" && (
-        <span><span style={labelStyle}>Plane:</span>
-          <select value={facility.manifest_plane || ""} onChange={e => updateOption("manifest_plane", e.target.value)} style={optStyle}>
-            {MANIFEST_PLANES.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </span>
-      )}
-      {facilityDef.hasOptions === "museum_charm" && (
-        <span><span style={labelStyle}>Origin:</span>
-          <select value={facility.museum_charm || ""} onChange={e => updateOption("museum_charm", e.target.value)} style={optStyle}>
-            {MUSEUM_CHARMS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </span>
-      )}
-      {facilityDef.hasOptions === "archive_books" && (
-        <span><span style={labelStyle}>Book:</span>
-          <select value={(facility.archive_books || [])[0] || ""} onChange={e => updateOption("archive_books", [e.target.value])} style={optStyle}>
-            {ARCHIVE_BOOKS.map(b => <option key={b} value={b}>{b}</option>)}
-          </select>
-        </span>
-      )}
-      {facilityDef.hasOptions === "workshop_tools" && (
-        <span><span style={labelStyle}>Tools:</span>
-          <span style={{ fontSize: 11, color: "var(--text-dim)" }}>
-            {(facility.workshop_tools || []).join(", ") || "Not configured"}
-          </span>
-        </span>
+      <span style={labelStyle}>{opt.label}:</span>
+      {readOnly ? <span style={{ fontSize: 12, color: "var(--text)" }}>{opt.value || "—"}</span> : (
+        <select value={opt.value || ""} onChange={e => { const field = facilityDef.hasOptions === "archive_books" ? "archive_books" : facilityDef.hasOptions; const val = facilityDef.hasOptions === "archive_books" ? [e.target.value] : e.target.value; updateOption(field, val); }} style={optStyle}>
+          {opt.options.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
       )}
     </div>
   );
@@ -346,123 +223,96 @@ function FacilityOptions({ facility, facilityDef, db, onReload, showToast }) {
 
 // ─── BASTION VIEW ───────────────────────────────────────────────
 
-function BastionView({ bastion, facilities, defenders, hirelings, player, onRemoveFacility, onAddDefender, onAddHireling, db, onReload, showToast }) {
+function BastionView({ bastion, facilities, defenders, hirelings, player, onRemoveFacility, onAddDefender, onAddHireling, db, onReload, showToast, readOnly }) {
   const [newDefName, setNewDefName] = useState("");
   const [defFacility, setDefFacility] = useState("");
   const [showHireForm, setShowHireForm] = useState(null);
   const [hireName, setHireName] = useState("");
   const [hireRole, setHireRole] = useState("");
-
   const specialFacs = facilities.filter(f => f.facility_type === "special");
   const basicFacs = facilities.filter(f => f.facility_type === "basic");
   const aliveDefenders = defenders.filter(d => d.is_alive);
   const barracks = facilities.filter(f => f.facility_key === "barrack");
   const maxSpecial = getMaxSpecialFacilities(player.character_level);
-
   return (
     <div>
       <div className="card" style={{ marginBottom: 16, background: "linear-gradient(135deg, var(--bg-card) 0%, #2A2418 100%)", borderColor: "var(--border-gold)" }}>
         <h2 style={{ fontSize: 20, marginBottom: 4 }}>{bastion.name}</h2>
         {bastion.description && <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 12 }}>{bastion.description}</p>}
         <div style={{ display: "flex", gap: 20, flexWrap: "wrap", fontSize: 13 }}>
-          <span>Special Facilities: <strong style={{ color: "var(--gold)" }}>{specialFacs.length}/{maxSpecial}</strong></span>
-          <span>Basic Facilities: <strong style={{ color: "var(--text)" }}>{basicFacs.length}</strong></span>
+          <span>Special: <strong style={{ color: "var(--gold)" }}>{specialFacs.length}/{maxSpecial}</strong></span>
+          <span>Basic: <strong>{basicFacs.length}</strong></span>
           <span>Defenders: <strong style={{ color: aliveDefenders.length > 0 ? "var(--green)" : "var(--crimson-bright)" }}>{aliveDefenders.length}</strong></span>
-          <span>Walls: <strong>{bastion.defensive_wall_squares || 0}</strong> sq{bastion.walls_fully_enclosed ? " (enclosed)" : ""}</span>
+          <span>Walls: <strong>{bastion.defensive_wall_squares || 0}</strong> sq{bastion.walls_fully_enclosed ? " ✓" : ""}</span>
         </div>
       </div>
-
       <h3 style={{ fontSize: 15, marginBottom: 10 }}>Special Facilities</h3>
-      {specialFacs.length === 0 ? (
-        <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 16 }}>No special facilities yet. Go to "Add Facilities" to choose your first.</p>
-      ) : (
+      {specialFacs.length === 0 ? <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 16 }}>No special facilities yet.</p> : (
         <div style={{ display: "grid", gap: 10, marginBottom: 20 }}>
-          {specialFacs.map(f => {
-            const def = SPECIAL_FACILITIES.find(sf => sf.key === f.facility_key);
-            const facHirelings = hirelings.filter(h => h.facility_id === f.id);
-            return (
-              <div key={f.id} className="card" style={{ borderLeft: `3px solid ${def ? SET_COLORS[def.set] : "var(--gold)"}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                      <h4 style={{ fontSize: 15, margin: 0 }}>{def?.name || f.facility_key}</h4>
-                      <span className="badge" style={{ background: "var(--bg-deep)", color: "var(--text-dim)", border: "1px solid var(--border)", fontSize: 10 }}>
-                        {SIZES[f.size].label} · {SIZES[f.size].squares} sq
-                      </span>
-                      {def && <span className="badge" style={{ background: "var(--bg-deep)", color: "var(--text-dim)", border: "1px solid var(--border)", fontSize: 10 }}>{def.order}</span>}
-                    </div>
-                    {def && <p style={{ fontSize: 13, color: "var(--text-dim)" }}>{def.desc}</p>}
-                    <FacilityOptions facility={f} facilityDef={def} db={db} onReload={onReload} showToast={showToast} />
-                    <div style={{ marginTop: 6 }}>
-                      <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase" }}>
-                        Hirelings ({facHirelings.length}/{def?.hirelings || "?"}):
-                      </span>{" "}
-                      {facHirelings.map(h => (
-                        <span key={h.id} style={{ fontSize: 12, color: "var(--text)", marginRight: 8 }}>
-                          {h.name}{h.role ? ` (${h.role})` : ""}
-                        </span>
-                      ))}
-                      {facHirelings.length < (def?.hirelings || 1) && (
-                        showHireForm === f.id ? (
-                          <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-                            <input value={hireName} onChange={e => setHireName(e.target.value)} placeholder="Name" style={{ width: 90, padding: "2px 6px", fontSize: 12 }} />
-                            <input value={hireRole} onChange={e => setHireRole(e.target.value)} placeholder="Role" style={{ width: 70, padding: "2px 6px", fontSize: 12 }} />
-                            <button onClick={() => { onAddHireling(f.id, hireName || "Unnamed", hireRole); setShowHireForm(null); setHireName(""); setHireRole(""); }}
-                              style={{ fontSize: 10, padding: "2px 6px" }}>+</button>
-                          </span>
-                        ) : (
-                          <button onClick={() => setShowHireForm(f.id)}
-                            style={{ fontSize: 10, padding: "2px 6px", background: "none", border: "1px solid var(--border)", color: "var(--text-dim)" }}>+ Add</button>
-                        )
-                      )}
-                    </div>
+          {specialFacs.map(f => { const def = SPECIAL_FACILITIES.find(sf => sf.key === f.facility_key); const facHirelings = hirelings.filter(h => h.facility_id === f.id); return (
+            <div key={f.id} className="card" style={{ borderLeft: "3px solid " + (def ? SET_COLORS[def.set] : "var(--gold)") }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                    <h4 style={{ fontSize: 15, margin: 0 }}>{def?.name || f.facility_key}</h4>
+                    <span className="badge" style={{ background: "var(--bg-deep)", color: "var(--text-dim)", border: "1px solid var(--border)", fontSize: 10 }}>{SIZES[f.size].label} · {SIZES[f.size].squares} sq</span>
+                    {def && <span className="badge" style={{ background: "var(--bg-deep)", color: "var(--text-dim)", border: "1px solid var(--border)", fontSize: 10 }}>{def.order}</span>}
                   </div>
-                  <button className="danger" onClick={() => onRemoveFacility(f.id)} style={{ fontSize: 10, padding: "4px 10px" }}>Remove</button>
+                  {def && <p style={{ fontSize: 13, color: "var(--text-dim)" }}>{def.desc}</p>}
+                  <FacilityOptions facility={f} facilityDef={def} db={db} onReload={onReload} showToast={showToast} readOnly={readOnly} />
+                  <div style={{ marginTop: 6 }}>
+                    <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase" }}>Hirelings ({facHirelings.length}/{def?.hirelings || "?"}):</span>{" "}
+                    {facHirelings.map(h => <span key={h.id} style={{ fontSize: 12, color: "var(--text)", marginRight: 8 }}>{h.name}{h.role ? " (" + h.role + ")" : ""}</span>)}
+                    {!readOnly && facHirelings.length < (def?.hirelings || 1) && (showHireForm === f.id ? (
+                      <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                        <input value={hireName} onChange={e => setHireName(e.target.value)} placeholder="Name" style={{ width: 90, padding: "2px 6px", fontSize: 12 }} />
+                        <input value={hireRole} onChange={e => setHireRole(e.target.value)} placeholder="Role" style={{ width: 70, padding: "2px 6px", fontSize: 12 }} />
+                        <button onClick={() => { onAddHireling(f.id, hireName || "Unnamed", hireRole); setShowHireForm(null); setHireName(""); setHireRole(""); }} style={{ fontSize: 10, padding: "2px 6px" }}>+</button>
+                      </span>
+                    ) : <button onClick={() => setShowHireForm(f.id)} style={{ fontSize: 10, padding: "2px 6px", background: "none", border: "1px solid var(--border)", color: "var(--text-dim)" }}>+ Add</button>)}
+                  </div>
                 </div>
+                {!readOnly && <button className="danger" onClick={() => onRemoveFacility(f.id)} style={{ fontSize: 10, padding: "4px 10px" }}>Remove</button>}
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      <h3 style={{ fontSize: 15, marginBottom: 10 }}>Basic Facilities</h3>
-      {basicFacs.length === 0 ? (
-        <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 16 }}>No basic facilities yet.</p>
-      ) : (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-          {basicFacs.map(f => (
-            <div key={f.id} className="card" style={{ padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 13, textTransform: "capitalize" }}>{f.facility_key.replace(/_/g, " ")}</span>
-              <span style={{ fontSize: 11, color: "var(--text-dim)" }}>({SIZES[f.size].label})</span>
-              <button className="danger" onClick={() => onRemoveFacility(f.id)} style={{ fontSize: 9, padding: "2px 6px", marginLeft: 4 }}>✕</button>
             </div>
-          ))}
+          ); })}
         </div>
       )}
-
-      <h3 style={{ fontSize: 15, marginBottom: 10 }}>Bastion Defenders ({aliveDefenders.length})</h3>
+      <h3 style={{ fontSize: 15, marginBottom: 10 }}>Basic Facilities</h3>
+      {basicFacs.length === 0 ? <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 16 }}>No basic facilities yet.</p> : (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+          {basicFacs.map(f => <div key={f.id} className="card" style={{ padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 13, textTransform: "capitalize" }}>{f.facility_key.replace(/_/g, " ")}</span>
+            <span style={{ fontSize: 11, color: "var(--text-dim)" }}>({SIZES[f.size].label})</span>
+            {!readOnly && <button className="danger" onClick={() => onRemoveFacility(f.id)} style={{ fontSize: 9, padding: "2px 6px", marginLeft: 4 }}>✕</button>}
+          </div>)}
+        </div>
+      )}
+      <h3 style={{ fontSize: 15, marginBottom: 10 }}>Defenders ({aliveDefenders.length})</h3>
       <div className="card" style={{ marginBottom: 20 }}>
-        {aliveDefenders.length === 0 && <p style={{ color: "var(--text-dim)", fontSize: 13 }}>No defenders. Build a Barrack and recruit some.</p>}
-        {aliveDefenders.length > 0 && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-            {aliveDefenders.map(d => (
-              <span key={d.id} style={{ fontSize: 12, padding: "3px 10px", background: "var(--bg-deep)", border: "1px solid var(--border)", borderRadius: 3 }}>
-                {d.name}{d.creature_type ? ` (${d.creature_type})` : ""}
-              </span>
-            ))}
-          </div>
-        )}
-        {barracks.length > 0 && (
+        {aliveDefenders.length === 0 && <p style={{ color: "var(--text-dim)", fontSize: 13 }}>No defenders.</p>}
+        {aliveDefenders.length > 0 && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: readOnly ? 0 : 10 }}>{aliveDefenders.map(d => <span key={d.id} style={{ fontSize: 12, padding: "3px 10px", background: "var(--bg-deep)", border: "1px solid var(--border)", borderRadius: 3 }}>{d.name}{d.creature_type ? " (" + d.creature_type + ")" : ""}</span>)}</div>}
+        {!readOnly && barracks.length > 0 && (
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
             <input value={newDefName} onChange={e => setNewDefName(e.target.value)} placeholder="Defender name" style={{ padding: "4px 8px", fontSize: 12, width: 160 }} />
-            <select value={defFacility} onChange={e => setDefFacility(e.target.value)} style={{ padding: "4px 8px", fontSize: 12 }}>
-              <option value="">Select barrack...</option>
-              {barracks.map(b => <option key={b.id} value={b.id}>Barrack ({SIZES[b.size].label})</option>)}
-            </select>
-            <button onClick={() => { if (newDefName && defFacility) { onAddDefender(newDefName, defFacility); setNewDefName(""); } }}
-              disabled={!newDefName || !defFacility} style={{ fontSize: 10, padding: "4px 10px" }}>Recruit</button>
+            <select value={defFacility} onChange={e => setDefFacility(e.target.value)} style={{ padding: "4px 8px", fontSize: 12 }}><option value="">Select barrack...</option>{barracks.map(b => <option key={b.id} value={b.id}>Barrack ({SIZES[b.size].label})</option>)}</select>
+            <button onClick={() => { if (newDefName && defFacility) { onAddDefender(newDefName, defFacility); setNewDefName(""); } }} disabled={!newDefName || !defFacility} style={{ fontSize: 10, padding: "4px 10px" }}>Recruit</button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function CreateBastionForm({ onCreate }) {
+  const [name, setName] = useState(""); const [desc, setDesc] = useState("");
+  return (
+    <div className="card" style={{ maxWidth: 500, margin: "40px auto", textAlign: "center" }}>
+      <h3 style={{ marginBottom: 16 }}>Establish Bastion</h3>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, textAlign: "left" }}>
+        <div><label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Bastion Name</label><input value={name} onChange={e => setName(e.target.value)} placeholder="The Ember Sanctum" style={{ width: "100%", marginTop: 4 }} /></div>
+        <div><label style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Cinzel", textTransform: "uppercase", letterSpacing: 1 }}>Description</label><textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="A converted watchtower..." style={{ width: "100%", marginTop: 4, minHeight: 60, resize: "vertical" }} /></div>
+        <button className="primary" onClick={() => onCreate(name, desc)} disabled={!name} style={{ width: "100%", padding: 12 }}>Establish Bastion</button>
       </div>
     </div>
   );
@@ -471,91 +321,57 @@ function BastionView({ bastion, facilities, defenders, hirelings, player, onRemo
 // ─── FACILITY BROWSER ───────────────────────────────────────────
 
 function FacilityBrowser({ level, currentFacilities, maxSpecial, currentSpecialCount, onAdd, onAddBasic }) {
-  const [filterSet, setFilterSet] = useState("all");
-  const [filterLevel, setFilterLevel] = useState("all");
-  const [filterOrder, setFilterOrder] = useState("all");
-  const [search, setSearch] = useState("");
-  const [basicSize, setBasicSize] = useState("roomy");
-
+  const [filterSet, setFilterSet] = useState("all"); const [filterLevel, setFilterLevel] = useState("all"); const [filterOrder, setFilterOrder] = useState("all"); const [search, setSearch] = useState(""); const [basicSize, setBasicSize] = useState("roomy");
   const currentKeys = currentFacilities.filter(f => f.facility_type === "special").map(f => f.facility_key);
   const atCap = currentSpecialCount >= maxSpecial;
-
-  const filtered = SPECIAL_FACILITIES.filter(f => {
-    if (filterSet !== "all" && f.set !== filterSet) return false;
-    if (filterLevel !== "all" && f.level !== parseInt(filterLevel)) return false;
-    if (filterOrder !== "all" && f.order !== filterOrder) return false;
-    if (search && !f.name.toLowerCase().includes(search.toLowerCase()) && !f.desc.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
-
+  const filtered = SPECIAL_FACILITIES.filter(f => { if (filterSet !== "all" && f.set !== filterSet) return false; if (filterLevel !== "all" && f.level !== parseInt(filterLevel)) return false; if (filterOrder !== "all" && f.order !== filterOrder) return false; if (search && !f.name.toLowerCase().includes(search.toLowerCase()) && !f.desc.toLowerCase().includes(search.toLowerCase())) return false; return true; });
   return (
     <div>
       <div className="card" style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
         <span style={{ fontSize: 14 }}>Special: <strong style={{ color: atCap ? "var(--crimson-bright)" : "var(--gold)" }}>{currentSpecialCount}/{maxSpecial}</strong> slots</span>
-        <span style={{ fontSize: 12, color: "var(--text-dim)" }}>Level {level} · Next slots at {level < 9 ? "9" : level < 13 ? "13" : level < 17 ? "17" : "max"}</span>
+        <span style={{ fontSize: 12, color: "var(--text-dim)" }}>Level {level}</span>
       </div>
       <div className="card" style={{ marginBottom: 20 }}>
         <h4 style={{ fontSize: 14, marginBottom: 10 }}>Basic Facilities</h4>
-        <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 10 }}>No game effects — add for RP and verisimilitude.</p>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-          {BASIC_FACILITIES.map(bf => (
-            <button key={bf} onClick={() => onAddBasic(bf, basicSize)} style={{ fontSize: 11, padding: "6px 12px" }}>{bf}</button>
-          ))}
-          <select value={basicSize} onChange={e => setBasicSize(e.target.value)} style={{ fontSize: 11, padding: "4px 8px" }}>
-            <option value="cramped">Cramped (500 GP, 20d)</option>
-            <option value="roomy">Roomy (1,000 GP, 45d)</option>
-            <option value="vast">Vast (3,000 GP, 125d)</option>
-          </select>
+          {BASIC_FACILITIES.map(bf => <button key={bf} onClick={() => onAddBasic(bf, basicSize)} style={{ fontSize: 11, padding: "6px 12px" }}>{bf}</button>)}
+          <select value={basicSize} onChange={e => setBasicSize(e.target.value)} style={{ fontSize: 11, padding: "4px 8px" }}><option value="cramped">Cramped</option><option value="roomy">Roomy</option><option value="vast">Vast</option></select>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search facilities..." style={{ flex: "1 1 180px", padding: "6px 10px", fontSize: 13 }} />
-        <select value={filterSet} onChange={e => setFilterSet(e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }}>
-          <option value="all">All Sets</option>
-          <option value="core">Core</option>
-          <option value="fr">Forgotten Realms</option>
-          <option value="eberron">Eberron</option>
-        </select>
-        <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }}>
-          <option value="all">All Levels</option>
-          <option value="5">Level 5</option><option value="9">Level 9</option>
-          <option value="13">Level 13</option><option value="17">Level 17</option>
-        </select>
-        <select value={filterOrder} onChange={e => setFilterOrder(e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }}>
-          <option value="all">All Orders</option>
-          {ORDER_TYPES.filter(o => o !== "Maintain").map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." style={{ flex: "1 1 180px", padding: "6px 10px", fontSize: 13 }} />
+        <select value={filterSet} onChange={e => setFilterSet(e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }}><option value="all">All Sets</option><option value="core">Core</option><option value="fr">FR</option><option value="eberron">Eberron</option></select>
+        <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }}><option value="all">All Lvl</option><option value="5">5</option><option value="9">9</option><option value="13">13</option><option value="17">17</option></select>
+        <select value={filterOrder} onChange={e => setFilterOrder(e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }}><option value="all">All Orders</option>{ORDER_TYPES.filter(o => o !== "Maintain").map(o => <option key={o} value={o}>{o}</option>)}</select>
       </div>
-      <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>{filtered.length} facilities shown</p>
+      <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>{filtered.length} facilities</p>
       <div style={{ display: "grid", gap: 10 }}>
         {filtered.map(fac => {
           const alreadyAdded = !fac.multi && currentKeys.includes(fac.key);
           const tooHighLevel = fac.level > level;
           const disabled = (atCap && !alreadyAdded) || tooHighLevel;
-          return (
-            <FacilityCard key={fac.key} fac={fac} added={alreadyAdded} disabled={disabled}
-              onAdd={(f) => {
-                const options = {};
-                if (f.hasOptions === "garden_type") options.garden_type = GARDEN_TYPES[0];
-                if (f.hasOptions === "pub_beverage") options.pub_beverage = PUB_BEVERAGES[0];
-                if (f.hasOptions === "training_type") options.training_type = TRAINING_TYPES[0];
-                if (f.hasOptions === "guild_type") options.guild_type = GUILD_TYPES[0];
-                if (f.hasOptions === "manifest_plane") options.manifest_plane = MANIFEST_PLANES[0];
-                if (f.hasOptions === "museum_charm") options.museum_charm = MUSEUM_CHARMS[0];
-                onAdd(f, options);
-              }}
-            />
-          );
+          return <FacilityCard key={fac.key} fac={fac} added={alreadyAdded} disabled={disabled} onAdd={(f) => {
+            const options = {};
+            if (f.hasOptions === "garden_type") options.garden_type = GARDEN_TYPES[0];
+            if (f.hasOptions === "pub_beverage") options.pub_beverage = PUB_BEVERAGES[0];
+            if (f.hasOptions === "training_type") options.training_type = TRAINING_TYPES[0];
+            if (f.hasOptions === "guild_type") options.guild_type = GUILD_TYPES[0];
+            if (f.hasOptions === "manifest_plane") options.manifest_plane = MANIFEST_PLANES[0];
+            if (f.hasOptions === "museum_charm") options.museum_charm = MUSEUM_CHARMS[0];
+            onAdd(f, options);
+          }} />;
         })}
       </div>
     </div>
   );
 }
 
-// ─── MAIN DASHBOARD ─────────────────────────────────────────────
+// ─── DASHBOARD ──────────────────────────────────────────────────
 
-function Dashboard({ db, party, player: initialPlayer }) {
-  const [tab, setTab] = useState("bastion");
+function Dashboard({ party, role, selectedPlayer, onLogout }) {
+  const isDM = role === "dm";
+  const [tab, setTab] = useState("overview");
+  const [viewingPlayerId, setViewingPlayerId] = useState(selectedPlayer?.id || null);
   const [bastion, setBastion] = useState(null);
   const [facilities, setFacilities] = useState([]);
   const [defenders, setDefenders] = useState([]);
@@ -564,88 +380,50 @@ function Dashboard({ db, party, player: initialPlayer }) {
   const [partyBastions, setPartyBastions] = useState({});
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
-  const [player, setPlayer] = useState(initialPlayer);
-  const [editingLevel, setEditingLevel] = useState(false);
-  const [tempLevel, setTempLevel] = useState(player.character_level);
-
   const showToast = useCallback((msg) => setToast(msg), []);
+
+  const viewPlayer = partyMembers.find(m => m.id === viewingPlayerId) || partyMembers[0] || null;
 
   const loadData = useCallback(async () => {
     try {
-      const bastions = await db.select("bastions", `player_id=eq.${player.id}`);
-      if (bastions.length > 0) {
-        setBastion(bastions[0]);
-        const facs = await db.select("facilities", `bastion_id=eq.${bastions[0].id}&order=created_at.asc`);
-        setFacilities(facs);
-        const defs = await db.select("defenders", `bastion_id=eq.${bastions[0].id}&order=created_at.asc`);
-        setDefenders(defs);
-        const facIds = facs.map(f => f.id);
-        if (facIds.length > 0) {
-          const hirs = await db.select("hirelings", `facility_id=in.(${facIds.join(",")})&order=created_at.asc`);
-          setHirelings(hirs);
-        } else {
-          setHirelings([]);
-        }
-      }
-      const members = await db.select("players", `party_id=eq.${party.id}&order=created_at.asc`);
+      const members = await db.select("players", "party_id=eq." + party.id + "&order=created_at.asc");
       setPartyMembers(members);
       const allBastions = {};
       for (const m of members) {
-        const b = await db.select("bastions", `player_id=eq.${m.id}`);
-        if (b.length) {
-          const f = await db.select("facilities", `bastion_id=eq.${b[0].id}&order=created_at.asc`);
-          allBastions[m.id] = { bastion: b[0], facilities: f };
-        }
+        const b = await db.select("bastions", "player_id=eq." + m.id);
+        if (b.length) { const facs = await db.select("facilities", "bastion_id=eq." + b[0].id + "&order=created_at.asc"); allBastions[m.id] = { bastion: b[0], facilities: facs }; }
       }
       setPartyBastions(allBastions);
+      const pid = viewingPlayerId || members[0]?.id;
+      if (pid) {
+        const pb = allBastions[pid];
+        if (pb) {
+          setBastion(pb.bastion); setFacilities(pb.facilities);
+          const defs = await db.select("defenders", "bastion_id=eq." + pb.bastion.id + "&order=created_at.asc"); setDefenders(defs);
+          const facIds = pb.facilities.map(f => f.id);
+          if (facIds.length > 0) { const hirs = await db.select("hirelings", "facility_id=in.(" + facIds.join(",") + ")&order=created_at.asc"); setHirelings(hirs); } else { setHirelings([]); }
+        } else { setBastion(null); setFacilities([]); setDefenders([]); setHirelings([]); }
+      }
     } catch (e) { console.error(e); }
     setLoading(false);
-  }, [db, player.id, party.id]);
+  }, [party.id, viewingPlayerId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  async function createBastion(name, desc) {
-    const [b] = await db.insert("bastions", { player_id: player.id, name, description: desc });
-    setBastion(b); showToast("Bastion created!"); loadData();
-    sendToDiscord(msgBastionCreated(player.character_name, name, desc));
-  }
+  function switchPlayer(pid) { setViewingPlayerId(pid); setLoading(true); }
 
-  async function addFacility(facilityKey, type, size, options = {}) {
-    await db.insert("facilities", { bastion_id: bastion.id, facility_key: facilityKey, facility_type: type, size, ...options });
-    const facDef = SPECIAL_FACILITIES.find(f => f.key === facilityKey);
-    const displayName = facDef?.name || facilityKey.replace(/_/g, " ");
-    showToast("Facility added!"); loadData();
-    sendToDiscord(msgFacilityAdded(player.character_name, displayName, type));
-  }
-
-  async function removeFacility(facId) {
-    const fac = facilities.find(f => f.id === facId);
-    const facDef = fac ? SPECIAL_FACILITIES.find(sf => sf.key === fac.facility_key) : null;
-    const displayName = facDef?.name || fac?.facility_key?.replace(/_/g, " ") || "facility";
-    await db.delete("facilities", { id: facId }); showToast("Facility removed"); loadData();
-    sendToDiscord(msgFacilityRemoved(player.character_name, displayName));
-  }
-
-  async function addDefender(name, facilityId) {
-    await db.insert("defenders", { bastion_id: bastion.id, facility_id: facilityId, name });
-    showToast("Defender recruited!"); loadData();
-    sendToDiscord(msgDefenderRecruited(player.character_name, bastion.name, name));
-  }
-
-  async function addHireling(facilityId, name, role) {
-    await db.insert("hirelings", { facility_id: facilityId, name, role });
-    showToast("Hireling added!"); loadData();
-  }
-
-  async function updateLevel(newLevel) {
-    await db.update("players", { id: player.id }, { character_level: newLevel });
-    setPlayer(prev => ({ ...prev, character_level: newLevel }));
-    setEditingLevel(false); showToast(`Level updated to ${newLevel}`); loadData();
-  }
+  async function createBastion(name, desc) { if (!viewPlayer) return; const [b] = await db.insert("bastions", { player_id: viewPlayer.id, name, description: desc }); setBastion(b); showToast("Bastion created!"); loadData(); sendToDiscord(msgBastionCreated(viewPlayer.character_name, name, desc)); }
+  async function addFacility(key, type, size, opts = {}) { if (!bastion) return; await db.insert("facilities", { bastion_id: bastion.id, facility_key: key, facility_type: type, size, ...opts }); const fd = SPECIAL_FACILITIES.find(f => f.key === key); showToast("Facility added!"); loadData(); sendToDiscord(msgFacilityAdded(viewPlayer?.character_name, fd?.name || key, type)); }
+  async function removeFacility(id) { const f = facilities.find(x => x.id === id); const fd = f ? SPECIAL_FACILITIES.find(sf => sf.key === f.facility_key) : null; await db.delete("facilities", { id }); showToast("Removed"); loadData(); sendToDiscord(msgFacilityRemoved(viewPlayer?.character_name || "", fd?.name || f?.facility_key || "")); }
+  async function addDefender(name, fid) { if (!bastion) return; await db.insert("defenders", { bastion_id: bastion.id, facility_id: fid, name }); showToast("Recruited!"); loadData(); sendToDiscord(msgDefenderRecruited(viewPlayer?.character_name, bastion.name, name)); }
+  async function addHireling(fid, name, role) { await db.insert("hirelings", { facility_id: fid, name, role }); showToast("Hireling added!"); loadData(); }
+  async function updateLevel(pid, lvl) { await db.update("players", { id: pid }, { character_level: lvl }); showToast("Level " + lvl); loadData(); }
+  async function removePlayer(pid) { const m = partyMembers.find(x => x.id === pid); await db.delete("players", { id: pid }); showToast("Removed"); loadData(); if (m) sendToDiscord(msgPlayerRemoved(m.character_name)); if (viewingPlayerId === pid) { const next = partyMembers.find(x => x.id !== pid); if (next) switchPlayer(next.id); } }
+  async function deleteParty() { await db.delete("parties", { id: party.id }); localStorage.removeItem("bastion_session"); setTimeout(() => window.location.reload(), 1000); }
 
   if (loading) return <Spinner />;
 
-  const maxSpecial = getMaxSpecialFacilities(player.character_level);
+  const maxSpecial = viewPlayer ? getMaxSpecialFacilities(viewPlayer.character_level) : 0;
   const currentSpecialCount = facilities.filter(f => f.facility_type === "special").length;
 
   return (
@@ -653,431 +431,146 @@ function Dashboard({ db, party, player: initialPlayer }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, letterSpacing: 1.5 }}>⚔ {party.name}</h1>
-          <p style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 2 }}>
-            Code: <span style={{ color: "var(--gold)", fontFamily: "monospace", letterSpacing: 2 }}>{party.join_code}</span>
-          </p>
+          <p style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 2 }}>{isDM && <>Code: <span style={{ color: "var(--gold)", fontFamily: "monospace", letterSpacing: 2 }}>{party.join_code}</span> · </>}<span style={{ color: isDM ? "var(--crimson-bright)" : "var(--text-dim)" }}>{isDM ? "👑 DM" : "⚔ " + (selectedPlayer?.character_name || "Player")}</span></p>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 12, height: 12, borderRadius: "50%", background: player.avatar_color }} />
-            <span style={{ fontFamily: "Cinzel", fontSize: 14, color: "var(--gold)" }}>{player.character_name}</span>
-            <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{player.character_class}</span>
-          </div>
-          <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2, display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
-            {editingLevel ? (
-              <>
-                <span>Lvl</span>
-                <input type="number" min={1} max={20} value={tempLevel} onChange={e => setTempLevel(parseInt(e.target.value) || 1)} style={{ width: 50, padding: "2px 6px", fontSize: 12 }} />
-                <button onClick={() => updateLevel(tempLevel)} style={{ fontSize: 10, padding: "2px 8px" }}>Save</button>
-                <button onClick={() => setEditingLevel(false)} style={{ fontSize: 10, padding: "2px 8px", border: "none", background: "none", color: "var(--text-dim)" }}>✕</button>
-              </>
-            ) : (
-              <span onClick={() => { setEditingLevel(true); setTempLevel(player.character_level); }} style={{ cursor: "pointer" }} title="Click to change level">
-                Level {player.character_level}{player.is_dm ? " · DM" : ""} ✎
-              </span>
-            )}
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {isDM && partyMembers.length > 0 && <select value={viewingPlayerId || ""} onChange={e => switchPlayer(e.target.value)} style={{ fontSize: 12, padding: "6px 10px" }}>{partyMembers.map(m => <option key={m.id} value={m.id}>{m.character_name} ({m.character_class} {m.character_level})</option>)}</select>}
+          <button onClick={onLogout} style={{ fontSize: 10, padding: "6px 12px", color: "var(--text-dim)", borderColor: "var(--border)" }}>Logout</button>
         </div>
       </div>
 
-      <Tabs tabs={[
-        { key: "bastion", label: "My Bastion" },
-        { key: "turns", label: "Turns" },
-        { key: "facilities", label: "Add Facilities" },
-        { key: "party", label: `Party (${partyMembers.length})` },
-        ...(player.is_dm ? [{ key: "dm", label: "⚙ DM Panel" }] : []),
-      ]} active={tab} onChange={setTab} />
+      <Tabs tabs={isDM ? [{ key: "overview", label: "Party (" + partyMembers.length + ")" }, { key: "bastion", label: "Bastion" }, { key: "turns", label: "Turns" }, { key: "facilities", label: "Add Facilities" }, { key: "dm", label: "⚙ Manage" }] : [{ key: "overview", label: "Party (" + partyMembers.length + ")" }, { key: "bastion", label: "Bastion" }, { key: "turns", label: "Turns" }]} active={tab} onChange={setTab} />
+
+      {tab === "overview" && <PartyOverview partyMembers={partyMembers} partyBastions={partyBastions} viewingPlayerId={viewingPlayerId} isDM={isDM} onSwitch={switchPlayer} />}
 
       {tab === "bastion" && (
         <div className="fade-in">
-          {!bastion ? (
-            <CreateBastionForm onCreate={createBastion} />
-          ) : (
-            <BastionView bastion={bastion} facilities={facilities} defenders={defenders}
-              hirelings={hirelingList} player={player} onRemoveFacility={removeFacility}
-              onAddDefender={addDefender} onAddHireling={addHireling} db={db} onReload={loadData} showToast={showToast} />
-          )}
+          {!viewPlayer ? <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 40 }}>{isDM ? "Select a player above." : "No data."}</p>
+          : !bastion ? (isDM ? <CreateBastionForm onCreate={createBastion} /> : <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 40 }}>No bastion for {viewPlayer.character_name} yet.</p>)
+          : <>
+              {isDM && <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>Managing: <strong style={{ color: "var(--gold)" }}>{viewPlayer.character_name}</strong></p>}
+              <BastionView bastion={bastion} facilities={facilities} defenders={defenders} hirelings={hirelingList} player={viewPlayer} onRemoveFacility={removeFacility} onAddDefender={addDefender} onAddHireling={addHireling} db={db} onReload={loadData} showToast={showToast} readOnly={!isDM} />
+            </>}
         </div>
       )}
 
-      {tab === "turns" && (
+      {tab === "turns" && <div className="fade-in">{viewPlayer && isDM && <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>Turns for: <strong style={{ color: "var(--gold)" }}>{viewPlayer.character_name}</strong></p>}<TurnManager bastion={bastion} facilities={facilities} defenders={defenders} player={viewPlayer} showToast={showToast} onReload={loadData} readOnly={!isDM} /></div>}
+
+      {tab === "facilities" && isDM && (
         <div className="fade-in">
-          <TurnManager bastion={bastion} facilities={facilities} defenders={defenders}
-            player={player} showToast={showToast} onReload={loadData} />
+          {!bastion || !viewPlayer ? <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 40 }}>Create bastion first.</p>
+          : <><p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 12 }}>Adding to: <strong style={{ color: "var(--gold)" }}>{viewPlayer.character_name}</strong></p><FacilityBrowser level={viewPlayer.character_level} currentFacilities={facilities} maxSpecial={maxSpecial} currentSpecialCount={currentSpecialCount} onAdd={(fac, opts) => addFacility(fac.key, "special", fac.space, opts)} onAddBasic={(n, s) => addFacility(n.toLowerCase().replace(/ /g, "_"), "basic", s)} /></>}
         </div>
       )}
 
-      {tab === "facilities" && (
-        <div className="fade-in">
-          {!bastion ? (
-            <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 40 }}>Create your Bastion first.</p>
-          ) : (
-            <FacilityBrowser level={player.character_level} currentFacilities={facilities}
-              maxSpecial={maxSpecial} currentSpecialCount={currentSpecialCount}
-              onAdd={(fac, options) => addFacility(fac.key, "special", fac.space, options)}
-              onAddBasic={(name, size) => addFacility(name.toLowerCase().replace(/ /g, "_"), "basic", size)} />
-          )}
-        </div>
-      )}
-
-      {tab === "party" && (
-        <div className="fade-in">
-          <div style={{ display: "grid", gap: 16 }}>
-            {partyMembers.map(m => {
-              const pb = partyBastions[m.id];
-              return (
-                <div key={m.id} className="card">
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: "50%", background: m.avatar_color,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontFamily: "Cinzel", fontSize: 16, color: "var(--bg-deep)", fontWeight: 700,
-                    }}>{m.character_name[0]}</div>
-                    <div>
-                      <h4 style={{ fontSize: 15, margin: 0 }}>{m.character_name}</h4>
-                      <p style={{ fontSize: 12, color: "var(--text-dim)" }}>
-                        {m.character_class} · Level {m.character_level}{m.is_dm ? " · DM" : ""}
-                      </p>
-                    </div>
-                  </div>
-                  {pb ? (
-                    <div>
-                      <p style={{ fontSize: 14 }}>
-                        <strong style={{ color: "var(--gold)" }}>{pb.bastion.name}</strong>
-                        {pb.bastion.description ? ` — ${pb.bastion.description}` : ""}
-                      </p>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                        {pb.facilities.filter(f => f.facility_type === "special").map(f => {
-                          const facDef = SPECIAL_FACILITIES.find(sf => sf.key === f.facility_key);
-                          return <span key={f.id} className="badge" style={{ background: "var(--bg-deep)", color: "var(--gold)", border: "1px solid var(--border-gold)", fontSize: 11 }}>{facDef?.name || f.facility_key}</span>;
-                        })}
-                        {pb.facilities.filter(f => f.facility_type === "basic").map(f => (
-                          <span key={f.id} className="badge" style={{ background: "var(--bg-deep)", color: "var(--text-dim)", border: "1px solid var(--border)", fontSize: 11 }}>
-                            {f.custom_name || f.facility_key.replace(/_/g, " ")}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <p style={{ fontSize: 13, color: "var(--text-dim)", fontStyle: "italic" }}>No bastion yet</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {tab === "dm" && player.is_dm && (
-        <DMPanel
-          db={db}
-          party={party}
-          partyMembers={partyMembers}
-          partyBastions={partyBastions}
-          currentPlayerId={player.id}
-          showToast={showToast}
-          onReload={loadData}
-        />
-      )}
+      {tab === "dm" && isDM && <DMManageTab partyMembers={partyMembers} onUpdateLevel={updateLevel} onRemovePlayer={removePlayer} onDeleteParty={deleteParty} />}
 
       {toast && <Toast message={toast} onClose={() => setToast("")} />}
     </div>
   );
 }
 
-// ─── DM PANEL ───────────────────────────────────────────────────
+// ─── PARTY OVERVIEW (shared by DM and Player) ───────────────────
 
-function DMPanel({ db, party, partyMembers, partyBastions, currentPlayerId, showToast, onReload }) {
-  const [confirmRemove, setConfirmRemove] = useState(null);
-  const [confirmDeleteParty, setConfirmDeleteParty] = useState(false);
-  const [editingMember, setEditingMember] = useState(null);
-  const [editLevel, setEditLevel] = useState(5);
-  const [expandedBastion, setExpandedBastion] = useState(null);
-  const [bastionDefenders, setBastionDefenders] = useState({});
-  const [bastionHirelings, setBastionHirelings] = useState({});
+function PartyOverview({ partyMembers, partyBastions, viewingPlayerId, isDM, onSwitch }) {
+  return (
+    <div className="fade-in" style={{ display: "grid", gap: 16 }}>
+      {partyMembers.map(m => {
+        const pb = partyBastions[m.id]; const isViewing = m.id === viewingPlayerId;
+        return (
+          <div key={m.id} className="card" style={{ borderColor: isViewing && isDM ? "var(--gold-dim)" : "var(--border)", cursor: isDM ? "pointer" : "default" }} onClick={() => isDM && onSwitch(m.id)}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: m.avatar_color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Cinzel", fontSize: 16, color: "var(--bg-deep)", fontWeight: 700 }}>{m.character_name[0]}</div>
+              <div>
+                <h4 style={{ fontSize: 15, margin: 0 }}>{m.character_name}{isViewing && isDM && <span style={{ fontSize: 10, color: "var(--gold)", marginLeft: 6 }}>(viewing)</span>}</h4>
+                <p style={{ fontSize: 12, color: "var(--text-dim)" }}>{m.character_class} · Level {m.character_level}</p>
+              </div>
+            </div>
+            {pb ? (
+              <div>
+                <p style={{ fontSize: 14 }}><strong style={{ color: "var(--gold)" }}>{pb.bastion.name}</strong>{pb.bastion.description ? <span style={{ color: "var(--text-dim)" }}> — {pb.bastion.description}</span> : ""}</p>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                  {pb.facilities.filter(f => f.facility_type === "special").map(f => { const fd = SPECIAL_FACILITIES.find(sf => sf.key === f.facility_key); return <span key={f.id} className="badge" style={{ background: "var(--bg-deep)", color: "var(--gold)", border: "1px solid var(--border-gold)", fontSize: 11 }}>{fd?.name || f.facility_key}</span>; })}
+                </div>
+              </div>
+            ) : <p style={{ fontSize: 13, color: "var(--text-dim)", fontStyle: "italic" }}>No bastion yet</p>}
+          </div>
+        );
+      })}
+      {partyMembers.length === 0 && <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 20 }}>No players yet. Share the join code.</p>}
+    </div>
+  );
+}
 
-  // Load defenders and hirelings for expanded bastions
-  useEffect(() => {
-    (async () => {
-      const defs = {};
-      const hirs = {};
-      for (const m of partyMembers) {
-        const pb = partyBastions[m.id];
-        if (pb) {
-          try {
-            defs[pb.bastion.id] = await db.select("defenders", `bastion_id=eq.${pb.bastion.id}&is_alive=eq.true&order=created_at.asc`);
-            const facIds = pb.facilities.map(f => f.id);
-            if (facIds.length > 0) {
-              hirs[pb.bastion.id] = await db.select("hirelings", `facility_id=in.(${facIds.join(",")})&order=created_at.asc`);
-            }
-          } catch {}
-        }
-      }
-      setBastionDefenders(defs);
-      setBastionHirelings(hirs);
-    })();
-  }, [partyMembers, partyBastions]);
+// ─── DM MANAGE TAB ──────────────────────────────────────────────
 
-  async function removePlayer(playerId) {
-    try {
-      const member = partyMembers.find(m => m.id === playerId);
-      await db.delete("players", { id: playerId });
-      showToast("Player removed");
-      setConfirmRemove(null);
-      onReload();
-      if (member) sendToDiscord(msgPlayerRemoved(member.character_name));
-    } catch (e) { showToast("Error: " + e.message); }
-  }
-
-  async function updatePlayerLevel(playerId, newLevel) {
-    try {
-      await db.update("players", { id: playerId }, { character_level: newLevel });
-      showToast(`Level updated to ${newLevel}`);
-      setEditingMember(null);
-      onReload();
-    } catch (e) { showToast("Error: " + e.message); }
-  }
-
-  async function removeFacilityDM(facilityId) {
-    try {
-      await db.delete("facilities", { id: facilityId });
-      showToast("Facility removed");
-      onReload();
-    } catch (e) { showToast("Error: " + e.message); }
-  }
-
-  async function removeDefenderDM(defenderId) {
-    try {
-      await db.delete("defenders", { id: defenderId });
-      showToast("Defender removed");
-      onReload();
-    } catch (e) { showToast("Error: " + e.message); }
-  }
-
-  async function deleteParty() {
-    try {
-      await db.delete("parties", { id: party.id });
-      showToast("Party deleted. Refresh to start over.");
-      setConfirmDeleteParty(false);
-      // Clear local state so they go back to the join screen
-      localStorage.removeItem("bastion_client_id");
-      setTimeout(() => window.location.reload(), 1500);
-    } catch (e) { showToast("Error: " + e.message); }
-  }
-
+function DMManageTab({ partyMembers, onUpdateLevel, onRemovePlayer, onDeleteParty }) {
   return (
     <div className="fade-in">
-      {/* Party Overview */}
-      <div className="card" style={{ marginBottom: 20, borderColor: "var(--crimson)", background: "linear-gradient(135deg, var(--bg-card) 0%, #2A1E1E 100%)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-          <div>
-            <h3 style={{ fontSize: 16, margin: 0, color: "var(--crimson-bright)" }}>⚙ Dungeon Master Panel</h3>
-            <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>
-              Party: <strong style={{ color: "var(--gold)" }}>{party.name}</strong> · Code: <span style={{ fontFamily: "monospace", color: "var(--gold)", letterSpacing: 2 }}>{party.join_code}</span> · {partyMembers.length} member{partyMembers.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-          <div>
-            {confirmDeleteParty ? (
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <span style={{ fontSize: 12, color: "var(--crimson-bright)" }}>Delete entire party?</span>
-                <button className="danger" onClick={deleteParty} style={{ fontSize: 10, padding: "4px 10px" }}>Yes, Delete</button>
-                <button onClick={() => setConfirmDeleteParty(false)} style={{ fontSize: 10, padding: "4px 10px" }}>Cancel</button>
-              </div>
-            ) : (
-              <button className="danger" onClick={() => setConfirmDeleteParty(true)} style={{ fontSize: 10, padding: "4px 10px" }}>Delete Party</button>
-            )}
-          </div>
+      <div className="card" style={{ borderColor: "var(--crimson)", background: "linear-gradient(135deg, var(--bg-card) 0%, #2A1E1E 100%)" }}>
+        <h3 style={{ fontSize: 16, margin: 0, color: "var(--crimson-bright)", marginBottom: 12 }}>⚙ Party Management</h3>
+        <div style={{ display: "grid", gap: 10 }}>
+          {partyMembers.map(m => <PlayerRow key={m.id} member={m} onUpdate={onUpdateLevel} onRemove={onRemovePlayer} />)}
         </div>
-      </div>
-
-      {/* All Members */}
-      <div style={{ display: "grid", gap: 16 }}>
-        {partyMembers.map(m => {
-          const pb = partyBastions[m.id];
-          const isExpanded = expandedBastion === m.id;
-          const isSelf = m.id === currentPlayerId;
-          const defs = pb ? (bastionDefenders[pb.bastion.id] || []) : [];
-          const hirs = pb ? (bastionHirelings[pb.bastion.id] || []) : [];
-
-          return (
-            <div key={m.id} className="card" style={{ borderColor: isSelf ? "var(--border-gold)" : "var(--border)" }}>
-              {/* Member Header */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: "50%", background: m.avatar_color,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontFamily: "Cinzel", fontSize: 18, color: "var(--bg-deep)", fontWeight: 700,
-                  }}>{m.character_name[0]}</div>
-                  <div>
-                    <h4 style={{ fontSize: 16, margin: 0 }}>
-                      {m.character_name}
-                      {isSelf && <span style={{ fontSize: 10, color: "var(--text-dim)", marginLeft: 6 }}>(you)</span>}
-                      {m.is_dm && <span className="badge" style={{ marginLeft: 6, background: "var(--crimson)22", color: "var(--crimson-bright)", border: "1px solid var(--crimson)", fontSize: 9 }}>DM</span>}
-                    </h4>
-                    <p style={{ fontSize: 13, color: "var(--text-dim)" }}>
-                      {m.character_class} ·{" "}
-                      {editingMember === m.id ? (
-                        <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-                          Level <input type="number" min={1} max={20} value={editLevel}
-                            onChange={e => setEditLevel(parseInt(e.target.value) || 1)}
-                            style={{ width: 50, padding: "1px 4px", fontSize: 12 }} />
-                          <button onClick={() => updatePlayerLevel(m.id, editLevel)} style={{ fontSize: 9, padding: "2px 6px" }}>Save</button>
-                          <button onClick={() => setEditingMember(null)} style={{ fontSize: 9, padding: "2px 6px", background: "none", border: "none", color: "var(--text-dim)" }}>✕</button>
-                        </span>
-                      ) : (
-                        <span onClick={() => { setEditingMember(m.id); setEditLevel(m.character_level); }} style={{ cursor: "pointer" }}>
-                          Level {m.character_level} ✎
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  {pb && (
-                    <button onClick={() => setExpandedBastion(isExpanded ? null : m.id)}
-                      style={{ fontSize: 10, padding: "4px 10px" }}>
-                      {isExpanded ? "▾ Collapse" : "▸ Expand"}
-                    </button>
-                  )}
-                  {!isSelf && (
-                    confirmRemove === m.id ? (
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <button className="danger" onClick={() => removePlayer(m.id)} style={{ fontSize: 9, padding: "3px 8px" }}>Confirm</button>
-                        <button onClick={() => setConfirmRemove(null)} style={{ fontSize: 9, padding: "3px 8px" }}>Cancel</button>
-                      </div>
-                    ) : (
-                      <button className="danger" onClick={() => setConfirmRemove(m.id)} style={{ fontSize: 10, padding: "4px 10px" }}>Remove</button>
-                    )
-                  )}
-                </div>
-              </div>
-
-              {/* Bastion Summary */}
-              {pb && (
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
-                  <p style={{ fontSize: 14 }}>
-                    <strong style={{ color: "var(--gold)" }}>{pb.bastion.name}</strong>
-                    {pb.bastion.description ? <span style={{ color: "var(--text-dim)" }}> — {pb.bastion.description}</span> : ""}
-                  </p>
-                  <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>
-                    <span>Special: {pb.facilities.filter(f => f.facility_type === "special").length}/{getMaxSpecialFacilities(m.character_level)}</span>
-                    <span>Basic: {pb.facilities.filter(f => f.facility_type === "basic").length}</span>
-                    <span>Defenders: {defs.length}</span>
-                    <span>Walls: {pb.bastion.defensive_wall_squares || 0}{pb.bastion.walls_fully_enclosed ? " (enclosed)" : ""}</span>
-                  </div>
-
-                  {/* Facility badges (always shown) */}
-                  <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 8 }}>
-                    {pb.facilities.filter(f => f.facility_type === "special").map(f => {
-                      const facDef = SPECIAL_FACILITIES.find(sf => sf.key === f.facility_key);
-                      return <span key={f.id} className="badge" style={{ background: "var(--bg-deep)", color: "var(--gold)", border: "1px solid var(--border-gold)", fontSize: 10 }}>{facDef?.name || f.facility_key}</span>;
-                    })}
-                  </div>
-
-                  {/* Expanded Detail */}
-                  {isExpanded && (
-                    <div style={{ marginTop: 14 }} className="fade-in">
-                      {/* Special Facilities Detail */}
-                      <h4 style={{ fontSize: 13, marginBottom: 8, color: "var(--gold-dim)" }}>Special Facilities</h4>
-                      {pb.facilities.filter(f => f.facility_type === "special").map(f => {
-                        const facDef = SPECIAL_FACILITIES.find(sf => sf.key === f.facility_key);
-                        const facHirs = hirs.filter(h => h.facility_id === f.id);
-                        return (
-                          <div key={f.id} style={{ padding: "8px 12px", marginBottom: 6, background: "var(--bg-deep)", borderRadius: 4, border: "1px solid var(--border)" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <div>
-                                <span style={{ fontSize: 13, color: "var(--gold)", fontFamily: "Cinzel" }}>{facDef?.name || f.facility_key}</span>
-                                <span style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: 8 }}>
-                                  {SIZES[f.size].label} · {facDef?.order}
-                                </span>
-                                {f.garden_type && <span style={{ fontSize: 11, color: "var(--green)", marginLeft: 8 }}>{f.garden_type}</span>}
-                                {f.pub_beverage && <span style={{ fontSize: 11, color: "var(--blue)", marginLeft: 8 }}>{f.pub_beverage}</span>}
-                                {f.training_type && <span style={{ fontSize: 11, color: "var(--blue)", marginLeft: 8 }}>{f.training_type}</span>}
-                              </div>
-                              <button className="danger" onClick={() => removeFacilityDM(f.id)} style={{ fontSize: 9, padding: "2px 6px" }}>✕</button>
-                            </div>
-                            {facHirs.length > 0 && (
-                              <div style={{ marginTop: 4, fontSize: 11, color: "var(--text-dim)" }}>
-                                Hirelings: {facHirs.map(h => h.name + (h.role ? ` (${h.role})` : "")).join(", ")}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-
-                      {/* Basic Facilities */}
-                      {pb.facilities.filter(f => f.facility_type === "basic").length > 0 && (
-                        <>
-                          <h4 style={{ fontSize: 13, marginBottom: 8, marginTop: 12, color: "var(--gold-dim)" }}>Basic Facilities</h4>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            {pb.facilities.filter(f => f.facility_type === "basic").map(f => (
-                              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", background: "var(--bg-deep)", borderRadius: 3, border: "1px solid var(--border)", fontSize: 12 }}>
-                                <span style={{ textTransform: "capitalize" }}>{f.facility_key.replace(/_/g, " ")}</span>
-                                <span style={{ color: "var(--text-dim)", fontSize: 10 }}>({SIZES[f.size].label})</span>
-                                <button className="danger" onClick={() => removeFacilityDM(f.id)} style={{ fontSize: 8, padding: "1px 4px", marginLeft: 2 }}>✕</button>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-
-                      {/* Defenders */}
-                      {defs.length > 0 && (
-                        <>
-                          <h4 style={{ fontSize: 13, marginBottom: 8, marginTop: 12, color: "var(--gold-dim)" }}>Defenders ({defs.length})</h4>
-                          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                            {defs.map(d => (
-                              <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", background: "var(--bg-deep)", borderRadius: 3, border: "1px solid var(--border)", fontSize: 11 }}>
-                                <span>{d.name}{d.creature_type ? ` (${d.creature_type})` : ""}</span>
-                                <button className="danger" onClick={() => removeDefenderDM(d.id)} style={{ fontSize: 8, padding: "1px 3px" }}>✕</button>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-              {!pb && <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 8, fontStyle: "italic" }}>No bastion established</p>}
-            </div>
-          );
-        })}
+        <div className="divider" />
+        <DeleteBtn onDelete={onDeleteParty} />
       </div>
     </div>
   );
 }
 
+function PlayerRow({ member, onUpdate, onRemove }) {
+  const [editing, setEditing] = useState(false); const [level, setLevel] = useState(member.character_level); const [confirm, setConfirm] = useState(false);
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "8px 12px", background: "var(--bg-deep)", borderRadius: 4, border: "1px solid var(--border)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ width: 28, height: 28, borderRadius: "50%", background: member.avatar_color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Cinzel", fontSize: 13, color: "var(--bg-deep)", fontWeight: 700 }}>{member.character_name[0]}</div>
+        <span style={{ fontFamily: "Cinzel", fontSize: 13, color: "var(--gold)" }}>{member.character_name}</span>
+        <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{member.character_class}</span>
+        {editing ? <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}><input type="number" min={1} max={20} value={level} onChange={e => setLevel(parseInt(e.target.value) || 1)} style={{ width: 48, padding: "1px 4px", fontSize: 11 }} /><button onClick={() => { onUpdate(member.id, level); setEditing(false); }} style={{ fontSize: 9, padding: "2px 6px" }}>Save</button><button onClick={() => setEditing(false)} style={{ fontSize: 9, padding: "2px 6px", background: "none", border: "none", color: "var(--text-dim)" }}>✕</button></span>
+        : <span onClick={() => { setEditing(true); setLevel(member.character_level); }} style={{ fontSize: 11, color: "var(--text-dim)", cursor: "pointer" }}>Lvl {member.character_level} ✎</span>}
+      </div>
+      {confirm ? <span style={{ display: "inline-flex", gap: 4 }}><button className="danger" onClick={() => { onRemove(member.id); setConfirm(false); }} style={{ fontSize: 9, padding: "3px 8px" }}>Confirm</button><button onClick={() => setConfirm(false)} style={{ fontSize: 9, padding: "3px 8px" }}>Cancel</button></span>
+      : <button className="danger" onClick={() => setConfirm(true)} style={{ fontSize: 10, padding: "4px 10px" }}>Remove</button>}
+    </div>
+  );
+}
+
+function DeleteBtn({ onDelete }) {
+  const [confirm, setConfirm] = useState(false);
+  return confirm ? <div style={{ display: "flex", gap: 8, alignItems: "center" }}><span style={{ fontSize: 12, color: "var(--crimson-bright)" }}>Delete everything?</span><button className="danger" onClick={onDelete} style={{ fontSize: 10, padding: "4px 10px" }}>Yes</button><button onClick={() => setConfirm(false)} style={{ fontSize: 10, padding: "4px 10px" }}>Cancel</button></div>
+  : <button className="danger" onClick={() => setConfirm(true)} style={{ fontSize: 10, padding: "4px 10px" }}>Delete Party</button>;
+}
+
 // ─── MAIN APP ───────────────────────────────────────────────────
 
 export default function App() {
-  const [clientId, setClientId] = useState(null);
+  const [role, setRole] = useState(null);
   const [party, setParty] = useState(null);
   const [player, setPlayer] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cid = localStorage.getItem("bastion_client_id");
-    if (!cid) {
-      cid = crypto.randomUUID();
-      localStorage.setItem("bastion_client_id", cid);
+    if (!localStorage.getItem("bastion_client_id")) localStorage.setItem("bastion_client_id", crypto.randomUUID());
+    const raw = localStorage.getItem("bastion_session");
+    if (raw) {
+      try {
+        const s = JSON.parse(raw);
+        (async () => {
+          const p = await db.select("parties", "id=eq." + s.partyId);
+          if (p.length) { setParty(p[0]); setRole(s.role); if (s.role === "player" && s.playerId) { const pl = await db.select("players", "id=eq." + s.playerId); if (pl.length) setPlayer(pl[0]); } }
+          setLoading(false);
+        })();
+        return;
+      } catch {}
     }
-    setClientId(cid);
     setLoading(false);
   }, []);
 
-  function handleJoin(partyData, playerData) {
-    setParty(partyData);
-    setPlayer(playerData);
-  }
+  function handleLogin(r, p, pl) { setRole(r); setParty(p); setPlayer(pl); }
+  function handleLogout() { localStorage.removeItem("bastion_session"); setRole(null); setParty(null); setPlayer(null); }
 
   if (loading) return <Spinner />;
-
-  return (
-    <>
-      {!party ? <PartyScreen db={db} clientId={clientId} onJoin={handleJoin} /> :
-       <Dashboard db={db} party={party} player={player} />}
-    </>
-  );
+  if (!role || !party) return <LoginScreen onLogin={handleLogin} />;
+  return <Dashboard party={party} role={role} selectedPlayer={player} onLogout={handleLogout} />;
 }

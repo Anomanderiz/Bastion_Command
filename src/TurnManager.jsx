@@ -180,7 +180,7 @@ function TurnEntry({ turn }) {
 
 // ─── MAIN TURN MANAGER ─────────────────────────────────────────
 
-export default function TurnManager({ bastion, facilities, defenders, player, showToast, onReload }) {
+export default function TurnManager({ bastion, facilities, defenders, player, showToast, onReload, readOnly }) {
   const [turns, setTurns] = useState([]);
   const [loading, setLoading] = useState(true);
   // New turn state
@@ -340,8 +340,8 @@ export default function TurnManager({ bastion, facilities, defenders, player, sh
 
   return (
     <div>
-      {/* Taking a Turn */}
-      {!isTakingTurn ? (
+      {/* Taking a Turn (DM only) */}
+      {!readOnly && (!isTakingTurn ? (
         <div className="card" style={{ marginBottom: 20, textAlign: "center", borderColor: "var(--border-gold)" }}>
           <h3 style={{ fontSize: 16, marginBottom: 6 }}>Bastion Turn {nextTurnNumber}</h3>
           <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14 }}>
@@ -498,6 +498,7 @@ export default function TurnManager({ bastion, facilities, defenders, player, sh
             </div>
           )}
         </div>
+      )}
       )}
 
       {/* Turn History */}
